@@ -5,18 +5,15 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>SYSTEMERGE — Done-for-you outbound. Pay per qualified sales call only.</title>
 <meta name="description" content="SYSTEMERGE runs your whole outbound engine — targeting, infrastructure, copy, sending and replies — and books qualified calls onto your calendar. No retainer. Pay per qualified sales call only.">
-<meta name="theme-color" content="#0A0A0B">
+<meta name="theme-color" content="#00052e">
 
 <meta property="og:type" content="website">
 <meta property="og:title" content="SYSTEMERGE — Done-for-you outbound">
 <meta property="og:description" content="We run your whole outbound engine and book qualified calls onto your calendar. No retainer. Pay per qualified sales call only.">
 
-<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='8' fill='%230A0A0B'/><circle cx='16' cy='16' r='6' fill='%23C8FF4D'/></svg>">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='4' fill='%2300052e'/><circle cx='16' cy='16' r='7' fill='none' stroke='%2334fcff' stroke-width='2'/></svg>">
 
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-
+<link rel="preload" href="assets/fonts/inter-latin.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="assets/styles.css">
 
 <!-- Reveal-on-scroll starts elements at opacity 0, so gate it on JS being
@@ -58,18 +55,35 @@
 <main id="main">
 
   <!-- ================================ HERO ================================ -->
-  <section class="hero">
+  <section class="hero band-dark">
     <div class="container hero-inner">
-      <h1 class="hero-title reveal">
-        <span class="nowrap">Done-for-you</span> outbound.<br>
-        Pay per <span class="accent-underline">qualified</span> sales call only.
-      </h1>
 
-      <p class="hero-sub reveal">
-        SYSTEMERGE runs your whole outbound engine, targeting, infrastructure, copy, sending, and
-        replies, and books qualified calls onto your calendar. No retainer. No ad spend. You pay per
-        qualified sales call, nothing else.
-      </p>
+      <!-- Brand signature graphic: appears once, never reused. -->
+      <img class="sphere" src="assets/sphere.svg" alt="" aria-hidden="true" width="800" height="800">
+
+      <!-- Ambient cards. Decorative and illustrative — delete both if you'd
+           rather the hero carried no example messages. -->
+      <div class="float-card float-card--a" aria-hidden="true">
+        <span class="fc-label"><span class="fc-dot"></span>Reply received</span>
+        <p>"Interested — can you do Thursday?"</p>
+      </div>
+      <div class="float-card float-card--b" aria-hidden="true">
+        <span class="fc-label"><span class="fc-dot"></span>Call booked</span>
+        <p>Qualified call added to your calendar.</p>
+      </div>
+
+      <div class="hero-copy">
+        <h1 class="hero-title reveal">
+          <span class="nowrap">Done-for-you</span> outbound.<br>
+          Pay per qualified sales call only.
+        </h1>
+
+        <p class="hero-sub reveal">
+          SYSTEMERGE runs your whole outbound engine, targeting, infrastructure, copy, sending, and
+          replies, and books qualified calls onto your calendar. No retainer. No ad spend. You pay
+          per qualified sales call, nothing else.
+        </p>
+      </div>
 
       <!--
         VSL: drop your embed URL into data-vsl-src (YouTube / Vimeo / Loom embed URL).
@@ -79,7 +93,7 @@
       <div class="vsl reveal" data-vsl data-vsl-src="">
         <button class="vsl-placeholder" type="button" data-vsl-play>
           <span class="vsl-play" aria-hidden="true">
-            <svg viewBox="0 0 24 24" width="26" height="26" fill="currentColor"><path d="M8 5.5v13l11-6.5-11-6.5Z"/></svg>
+            <svg viewBox="0 0 24 24" width="24" height="24" fill="currentColor"><path d="M8 5.5v13l11-6.5-11-6.5Z"/></svg>
           </span>
           <span class="vsl-label">VSL — 2-minute video: how it works</span>
         </button>
@@ -96,7 +110,7 @@
        Add client logos once you have them, then delete this comment wrapper
        to make the strip visible. Until then it stays out of the page.
 
-  <section class="logos">
+  <section class="logos band-dark">
     <div class="container">
       <p class="logos-label">Trusted by</p>
       <ul class="logo-strip">
@@ -111,8 +125,9 @@
   ====================================================================== -->
 
   <!-- ============================= PAIN POINTS ============================= -->
-  <section class="section" id="pain">
+  <section class="section band-dark" id="pain">
     <div class="container">
+      <span class="eyebrow reveal">The problem</span>
       <h2 class="section-title reveal">Are you dealing with any of this?</h2>
 
       <div class="grid grid-3">
@@ -133,38 +148,39 @@
   </section>
 
   <!-- =============================== WHY US =============================== -->
-  <section class="section section-alt" id="why">
+  <section class="section band-dark" id="why">
     <div class="container">
+      <span class="eyebrow reveal">What we run</span>
       <h2 class="section-title reveal">You bring the offer and take the calls. We do the rest.</h2>
 
       <div class="grid grid-3">
-        <article class="card card-feature reveal">
-          <span class="tick" aria-hidden="true"></span>
+        <article class="card reveal">
+          <span class="card-idx">01</span>
           <h3>Sending infrastructure</h3>
           <p>Separate domains, bought and warmed. Your main domain never sends a cold email.</p>
         </article>
-        <article class="card card-feature reveal">
-          <span class="tick" aria-hidden="true"></span>
+        <article class="card reveal">
+          <span class="card-idx">02</span>
           <h3>Lists, built and verified</h3>
           <p>Sourced per campaign from your ideal buyer, scored for fit, every address verified.</p>
         </article>
-        <article class="card card-feature reveal">
-          <span class="tick" aria-hidden="true"></span>
+        <article class="card reveal">
+          <span class="card-idx">03</span>
           <h3>Copy you approve</h3>
           <p>Written for your offer. Nothing sends until you sign off.</p>
         </article>
-        <article class="card card-feature reveal">
-          <span class="tick" aria-hidden="true"></span>
+        <article class="card reveal">
+          <span class="card-idx">04</span>
           <h3>Replies, handled fast</h3>
           <p>Every reply read and answered quickly. Interested prospects get a call proposed right away.</p>
         </article>
-        <article class="card card-feature reveal">
-          <span class="tick" aria-hidden="true"></span>
+        <article class="card reveal">
+          <span class="card-idx">05</span>
           <h3>Qualified calls, booked</h3>
           <p>Real calls on your calendar with a short brief on who they are and why they replied.</p>
         </article>
-        <article class="card card-feature reveal">
-          <span class="tick" aria-hidden="true"></span>
+        <article class="card reveal">
+          <span class="card-idx">06</span>
           <h3>Assets stay yours</h3>
           <p>Domains, lists, and copy transfer to you if you leave.</p>
         </article>
@@ -172,9 +188,13 @@
     </div>
   </section>
 
+  <!-- Gradient transition — used once, dark shell into the light register. -->
+  <div class="band-transition" aria-hidden="true"></div>
+
   <!-- ============================ BUILD VS BUY ============================ -->
-  <section class="section" id="build-vs-buy">
+  <section class="section band-light" id="build-vs-buy">
     <div class="container">
+      <span class="eyebrow reveal">Build vs buy</span>
       <h2 class="section-title reveal">This is a whole department. We already built it.</h2>
 
       <div class="compare">
@@ -189,7 +209,7 @@
         </article>
 
         <article class="compare-col compare-hot reveal">
-          <h3 class="compare-head">With <span class="brandmark">SYSTEMERGE</span></h3>
+          <h3 class="compare-head">With SYSTEMERGE</h3>
           <ul class="list list-check">
             <li>The engine is built and sending in weeks.</li>
             <li>We run and replace the infrastructure. You never touch it.</li>
@@ -206,8 +226,9 @@
   </section>
 
   <!-- =============================== PROCESS =============================== -->
-  <section class="section section-alt" id="process">
+  <section class="section band-light" id="process">
     <div class="container">
+      <span class="eyebrow reveal">How it works</span>
       <h2 class="section-title reveal">Three steps. You only show up for the last one.</h2>
 
       <ol class="steps">
@@ -231,8 +252,9 @@
   </section>
 
   <!-- ============================ WHO THIS IS FOR ============================ -->
-  <section class="section" id="fit">
+  <section class="section band-light" id="fit">
     <div class="container">
+      <span class="eyebrow reveal">Qualification</span>
       <h2 class="section-title reveal">We don't pick by industry. We pick by whether the math works.</h2>
 
       <div class="compare">
@@ -260,9 +282,10 @@
   </section>
 
   <!-- ============================ RISK REVERSAL ============================ -->
-  <section class="section section-alt" id="guarantee">
+  <section class="section band-dark" id="guarantee">
     <div class="container">
       <div class="risk reveal">
+        <span class="eyebrow">Risk reversal</span>
         <h2 class="risk-title">You only pay for calls that count.</h2>
         <p class="risk-body">
           A qualified call is a real decision-maker who fits your business and shows up. No-show or
@@ -275,8 +298,9 @@
   </section>
 
   <!-- ================================= FAQ ================================= -->
-  <section class="section" id="faq">
+  <section class="section band-dark" id="faq">
     <div class="container container-narrow">
+      <span class="eyebrow reveal">Answers</span>
       <h2 class="section-title reveal">FAQ</h2>
 
       <div class="faq">
@@ -326,8 +350,9 @@
   </section>
 
   <!-- =============================== BOOKING =============================== -->
-  <section class="section booking" id="book">
+  <section class="section band-dark" id="book">
     <div class="container container-narrow">
+      <span class="eyebrow reveal">Book the call</span>
       <h2 class="section-title reveal">See if this works for your business.</h2>
       <p class="section-sub reveal">
         Thirty minutes. We size your market, review the economics, and outline the work.
@@ -342,8 +367,8 @@
       <div class="calendly reveal" data-calendly data-calendly-url="">
         <div class="calendly-placeholder">
           <span class="calendly-icon" aria-hidden="true">
-            <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round">
-              <rect x="3" y="5" width="18" height="16" rx="3"></rect>
+            <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round">
+              <rect x="3" y="5" width="18" height="16" rx="2"></rect>
               <path d="M8 3v4M16 3v4M3 10h18"></path>
             </svg>
           </span>
@@ -361,7 +386,7 @@
 </main>
 
 <!-- ================================ FOOTER ================================ -->
-<footer class="site-footer">
+<footer class="site-footer band-dark">
   <div class="container footer-inner">
     <a class="brand" href="#top">SYSTEMERGE</a>
     <a class="footer-cta" href="#book" data-book>Book the strategy call</a>
