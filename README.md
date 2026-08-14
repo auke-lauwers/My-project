@@ -7,8 +7,7 @@ No build step, no dependencies — open `index.html` or serve the folder.
 index.html            # all copy and structure
 assets/styles.css     # design tokens + styles
 assets/main.js        # nav, CTA scroll, VSL + Calendly loaders, reveal animations
-assets/sphere.svg     # generated particle sphere (hero brand graphic)
-assets/fonts/         # self-hosted Inter + IBM Plex Mono (168KB total)
+assets/fonts/         # self-hosted Inter, Playfair Display, IBM Plex Mono (232KB)
 ```
 
 Local preview:
@@ -31,70 +30,69 @@ Five placeholders, each marked with an HTML comment in `index.html`.
 
 ## Design system
 
-Implements the **Ameba** style reference — "midnight control room, electric blue
-pulse inside frosted glass panels." Every value is a CSS custom property in the
-`:root` block at the top of `assets/styles.css`.
+Implements the **Resend** style reference — "black velvet with violet neon."
+Every value is a CSS custom property in the `:root` block at the top of
+`assets/styles.css`.
 
-**Two registers.** Dark atmospheric bands (Midnight Ink `#00052e`, centered
-content) carry the hero, pain points, capabilities, risk reversal, FAQ and
-booking. Light product bands (Paper `#ffffff`, left-aligned) carry build-vs-buy,
-process and qualification. A single gradient transition marks the handoff from
-dark to light, used once, as the reference specifies.
-
-Switching a section between registers is one class — `band-dark` or
-`band-light`. Those classes only reassign role tokens (`--text`, `--text-muted`,
-`--hairline`, `--eyebrow`, `--panel`); no rule below the token block
-re-specifies a color per band.
+The canvas is pure `#000000` throughout — no gradients, glows or chromatic
+washes, and no light/dark alternation. Depth comes entirely from 1px `#292d30`
+hairlines; there is not a single drop shadow in the stylesheet.
 
 **Rules the stylesheet holds to:**
 
-- Signal Blue `#0428cb` fills the one CTA and nothing else structural
-- Arc Cyan `#34fcff` is atmospheric only — glow, status dots, eyebrows on dark. Never a border, button, or body text
-- No shadows anywhere; separation is hairline borders plus the radial glow
-- Radii cap at 8px (cards, buttons) and 4px (tags) — no pills
-- Display type is Inter 300 with negative tracking, per-step as specified
-- IBM Plex Mono at 0.085em tracking is reserved for system/metadata chrome — eyebrows, step numbers, micro-labels
+- Buttons are ghost — transparent fill, hairline border, white label. Never filled, never colorful
+- Radius scale is exactly two values: 16px cards, 6px buttons/badges/inputs, plus 24px on the one large panel. The announcement badge is the single pill, per its component spec
+- Iris Violet `#9281f7` belongs to code strings and identifiers only. It is never a heading colour and never lands on a button
+- Status hues (green/blue/violet-glow/amber) appear only in the status indicator row
+- The hero is an editorial serif at -0.01em; section headlines are a geometric sans with -0.05em tracking — the compressed tracking is the signature
 
-**Font substitutions.** F37 Bolton and Open Sauce Sans are commercial, and the
-reference names Inter as an approved substitute for both. Inter (variable,
-300–700) and IBM Plex Mono are self-hosted from `assets/fonts/`, so the page
-makes no third-party font request. To switch to the real faces, add their
-`@font-face` blocks and repoint `--font-display` / `--font-body`.
+**Font substitutions.** Domaine, aBC Favorit and Commit Mono are commercial. The
+reference names substitutes for each, and those are what's used: Playfair
+Display for the Domaine hero, Inter for aBC Favorit headlines and body, IBM Plex
+Mono for Commit Mono. All self-hosted, so the page makes no third-party font
+request. To switch to the real faces, add their `@font-face` blocks and repoint
+`--font-display` / `--font-sans` / `--font-mono`.
 
-**Particle sphere.** `assets/sphere.svg` is generated, not hand-drawn — 1500
-points placed by golden-angle spiral on a sphere and projected orthographically,
-which is what produces the dense rim and sparse center. Depth drives dot size,
-opacity and color (Arc Cyan toward the viewer, Signal Blue behind). Regenerate
-by editing the constants at the top of the generator snippet in the commit
-history, or just replace the file.
+**Hero cube.** The reference's WebGL cube is done in CSS 3D instead — six black
+faces with hairline edges, a 26s rotation, no glow and no colour. It costs
+nothing, needs no library, and holds still under `prefers-reduced-motion`.
 
-### Two deliberate deviations
+**Terminal window.** The system uses code windows as its product-proof surface,
+and that is the only place the violet legitimately belongs. The one on the page
+shows a sending setup with the `from:`/`reply_to:` split that keeps your main
+domain clean. It is **illustrative, not real campaign data** — no metrics or
+results are claimed. Delete the block if you'd rather not show a sample.
 
-1. **Muted text uses Mist `#8185a0`, not Fog `#6b6b83`.** The reference
-   specifies Fog for hero subtext and muted copy on dark, but Fog against
-   Midnight Ink measures **3.82:1** — below the 4.5:1 WCAG AA floor for body
-   text. Mist is the neighbouring palette step and clears it at **5.46:1**. Fog
-   is retained for hairlines and non-text chrome. Revert the two lines flagged
-   in the `:root` block for strict fidelity at the cost of the contrast failure.
+### Three deliberate deviations
 
-2. **Signal Blue is the primary CTA fill.** The reference contradicts itself
-   here: the color table says "do not promote it to the primary CTA color,"
-   while both the Primary CTA Button component spec ("Background #0428cb") and
-   the Do's list ("reserve Signal Blue exclusively for the single filled CTA")
-   say the opposite. Two of three call it the CTA, so that's the reading used.
+1. **The display step is capped at 68px, not 96px.** The reference's 96px hero
+   carries a three-word statement. Ours is a full sentence, and at 96px it wrapped
+   to seven lines and pushed the CTA off-screen. The type role is unchanged.
 
-Also note the reference's surface tokens list `#00052` — a five-digit value that
-isn't valid hex. It's an extraction artifact for `#00052e`, and that's what the
-stylesheet uses.
+2. **Ghost buttons use Iron `#6e727a` for the border, not Graphite `#292d30`.**
+   A ghost button's border is its only affordance, and Graphite on black measures
+   **1.51:1** — effectively invisible. Iron is the palette's own "low-emphasis
+   borders" token and clears the 3:1 non-text threshold at 4.35:1. Cards and
+   dividers still use Graphite as specified.
+
+3. **Code comments use Ash Gray, not Charcoal `#464a4d`.** Charcoal is
+   **2.35:1** on black. The reference describes it as "text that should
+   disappear into the surface," which is fine for decoration but not for lines
+   that carry meaning.
+
+The reference also contradicts itself on the primary action: the Primary Button
+component and the Do's list both insist buttons stay ghost and never filled,
+while the Agent Prompt Guide lists "#3b9eff (filled action)". Two of three say
+ghost, so ghost it is. If you'd rather trade fidelity for conversion punch, a
+white-filled CTA is a two-line change to `.btn` — the reference permits
+"white-text-on-black" as the alternative.
 
 ### Added labels
 
-The system's "two-tier entry" (technical eyebrow above an editorial headline)
-needs an eyebrow per section. These short mono labels aren't in the supplied
-copy — *The problem, What we run, Build vs buy, How it works, Qualification,
-Risk reversal, Answers, Book the call*. Your headline and body copy is verbatim.
-The two floating hero cards are likewise illustrative; delete them if you'd
-rather the hero carried no example messages.
+The system pairs a technical eyebrow with each section headline. These short
+mono labels aren't in the supplied copy — *The problem, What we run, Build vs
+buy, How it works, Qualification, Answers, Book the call*. Your headline and
+body copy is verbatim.
 
 ## Conversion wiring
 
@@ -108,9 +106,12 @@ rather the hero carried no example messages.
 
 - Skip link, labeled landmarks, visible focus rings, `aria-expanded` on the
   mobile menu, Escape to close, 44px tap target.
-- All text/background pairs meet WCAG AA (see deviation 1 above).
-- `prefers-reduced-motion` disables reveal animations and smooth scrolling.
+- All text/background pairs meet WCAG AA (see deviations 2 and 3).
+- `prefers-reduced-motion` disables reveal animations, smooth scrolling and the
+  cube rotation.
 - Reveal animations are gated behind a `.js` class set inline in `<head>`, so
   the page is fully visible with scripts disabled.
 - No frameworks and no third-party requests on load. Calendly and the video
   player load lazily / on click.
+- Verified with no horizontal overflow at 1920, 1440, 1180, 1024, 820, 768,
+  480, 390 and 320px.

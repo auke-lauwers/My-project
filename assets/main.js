@@ -122,7 +122,7 @@
       holder.style.minWidth = "320px";
       holder.style.height = "700px";
       holder.setAttribute("data-url", calendlyUrl + (calendlyUrl.indexOf("?") === -1 ? "?" : "&") +
-        "hide_gdpr_banner=1&background_color=00052e&text_color=ffffff&primary_color=0428cb");
+        "hide_gdpr_banner=1&background_color=000000&text_color=f0f0f0&primary_color=9281f7");
 
       calendly.replaceChildren(holder);
       calendly.classList.add("is-live");
