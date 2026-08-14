@@ -267,6 +267,14 @@ img, svg { max-width: 100%; display: block; }
 .btn-sm { padding: 12px var(--space-20); }
 .btn-lg { padding: 20px 40px; font-size: var(--text-body-sm); }
 
+/* "Book the strategy call" is a long label once uppercased and tracked out.
+   Below ~400px it no longer fits the viewport, so tighten it and let it wrap
+   rather than push the page into horizontal scroll. */
+@media (max-width: 400px) {
+  .btn { white-space: normal; text-wrap: balance; }
+  .btn-lg { padding: 18px var(--space-24); font-size: var(--text-caption); }
+}
+
 /* ============================ Announcement ================================ */
 
 .announce {
