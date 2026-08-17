@@ -5,15 +5,16 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>SYSTEMERGE — Done-for-you outbound. Pay per qualified sales call only.</title>
 <meta name="description" content="SYSTEMERGE runs your whole outbound engine — targeting, infrastructure, copy, sending and replies — and books qualified calls onto your calendar. No retainer. Pay per qualified sales call only.">
-<meta name="theme-color" content="#132322">
+<meta name="theme-color" content="#0b0b0b">
 
 <meta property="og:type" content="website">
 <meta property="og:title" content="SYSTEMERGE — Done-for-you outbound">
 <meta property="og:description" content="We run your whole outbound engine and book qualified calls onto your calendar. No retainer. Pay per qualified sales call only.">
 
-<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='10' fill='%23132322'/><circle cx='16' cy='16' r='7' fill='%233ddc91'/></svg>">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='8' fill='%230b0b0b'/><path d='M16 6l2.6 7.4L26 16l-7.4 2.6L16 26l-2.6-7.4L6 16l7.4-2.6z' fill='%23a881fe'/></svg>">
 
 <link rel="preload" href="assets/fonts/inter-latin.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="assets/fonts/space-grotesk-latin.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="assets/styles.css">
 
 <!-- Reveal-on-scroll starts elements at opacity 0, so gate it on JS being
@@ -24,24 +25,32 @@
 
 <a class="skip-link" href="#main">Skip to content</a>
 
-<!-- ============================== TOP BAR ==============================
-     Full-width green announcement strip, then the dark navigation bar.
--->
-<div class="announce" data-announce>
+<!-- ============================== TOP BAR ============================== -->
+<div class="announce">
   <div class="container announce-inner">
     <span>A few client spots open for <span data-current-month>this month</span></span>
   </div>
-  <button class="announce-close" type="button" data-announce-close aria-label="Dismiss announcement">&times;</button>
 </div>
 
 <header class="site-header" id="top">
   <div class="container header-inner">
-    <a class="brand" href="#top" aria-label="SYSTEMERGE — home">SYSTEMERGE</a>
+    <a class="brand" href="#top" aria-label="SYSTEMERGE — home">
+      <svg class="sparkle" width="16" height="16" viewBox="0 0 32 32" fill="currentColor" aria-hidden="true">
+        <path d="M16 2l3.2 10.8L30 16l-10.8 3.2L16 30l-3.2-10.8L2 16l10.8-3.2z"/>
+      </svg>
+      SYSTEMERGE
+    </a>
 
     <nav class="nav" aria-label="Primary">
       <a href="#process">How it works</a>
       <a href="#faq">FAQ</a>
-      <a class="btn btn-primary btn-sm" href="#book" data-book>Book the call</a>
+      <a href="#roi">
+        <svg class="sparkle" width="12" height="12" viewBox="0 0 32 32" fill="currentColor" aria-hidden="true">
+          <path d="M16 2l3.2 10.8L30 16l-10.8 3.2L16 30l-3.2-10.8L2 16l10.8-3.2z"/>
+        </svg>
+        ROI Calculator
+      </a>
+      <a class="btn btn-utility" href="#book" data-book>Book the call</a>
     </nav>
 
     <button class="nav-toggle" type="button" aria-expanded="false" aria-controls="mobile-nav" aria-label="Open menu">
@@ -52,7 +61,8 @@
   <nav class="mobile-nav" id="mobile-nav" aria-label="Mobile" hidden>
     <a href="#process">How it works</a>
     <a href="#faq">FAQ</a>
-    <a class="btn btn-primary" href="#book" data-book>Book the call</a>
+    <a href="#roi">ROI Calculator</a>
+    <a class="btn btn-utility" href="#book" data-book>Book the call</a>
   </nav>
 </header>
 
@@ -60,47 +70,32 @@
 
   <!-- ================================ HERO ================================ -->
   <section class="hero">
-    <div class="container hero-grid">
+    <div class="container hero-inner">
+      <h1 class="hero-title reveal"><span class="nowrap">Done-for-you</span> outbound. Pay per qualified sales call only.</h1>
 
-      <div class="hero-copy">
-        <h1 class="hero-title reveal"><span class="nowrap">Done-for-you</span> outbound. Pay per qualified sales call only.</h1>
+      <p class="hero-sub reveal">
+        SYSTEMERGE runs your whole outbound engine, targeting, infrastructure, copy, sending, and
+        replies, and books qualified calls onto your calendar. No retainer. No ad spend. You pay
+        per qualified sales call, nothing else.
+      </p>
 
-        <p class="hero-sub reveal">
-          SYSTEMERGE runs your whole outbound engine, targeting, infrastructure, copy, sending, and
-          replies, and books qualified calls onto your calendar. No retainer. No ad spend. You pay
-          per qualified sales call, nothing else.
-        </p>
-
-        <div class="hero-actions reveal">
-          <a class="btn btn-primary btn-lg" href="#book" data-book>Book the strategy call</a>
-        </div>
-        <p class="micro reveal">We'll tell you on the first call if the economics don't work.</p>
+      <div class="hero-actions reveal">
+        <a class="btn btn-primary btn-lg" href="#book" data-book>Book the strategy call</a>
       </div>
+      <p class="micro center reveal">We'll tell you on the first call if the economics don't work.</p>
 
-      <!-- Isometric module stack — the outbound engine, one plate per stage. -->
-      <div class="hero-visual reveal">
-        <img src="assets/isometric.svg" alt="" aria-hidden="true" width="460" height="480">
-      </div>
-    </div>
-
-    <!-- VSL sits in a light Mint Frost card, per the product-panel pattern. -->
-    <div class="container band-wrap">
-      <div class="band-light reveal">
-        <span class="eyebrow">The two-minute version</span>
-        <h2 class="section-title">Watch how the engine runs.</h2>
-        <!--
-          VSL: drop your embed URL into data-vsl-src (YouTube / Vimeo / Loom embed URL).
-          Example: data-vsl-src="https://www.youtube.com/embed/XXXXXXXXXXX"
-          Leaving it empty shows the styled placeholder below.
-        -->
-        <div class="vsl" data-vsl data-vsl-src="">
-          <button class="vsl-placeholder" type="button" data-vsl-play>
-            <span class="vsl-play" aria-hidden="true">
-              <svg viewBox="0 0 24 24" width="22" height="22" fill="currentColor"><path d="M8 5.5v13l11-6.5-11-6.5Z"/></svg>
-            </span>
-            <span class="vsl-label">VSL — 2-minute video: how it works</span>
-          </button>
-        </div>
+      <!--
+        VSL: drop your embed URL into data-vsl-src (YouTube / Vimeo / Loom embed URL).
+        Example: data-vsl-src="https://www.youtube.com/embed/XXXXXXXXXXX"
+        Leaving it empty shows the styled placeholder below.
+      -->
+      <div class="vsl reveal" data-vsl data-vsl-src="">
+        <button class="vsl-placeholder" type="button" data-vsl-play>
+          <span class="vsl-play" aria-hidden="true">
+            <svg viewBox="0 0 24 24" width="22" height="22" fill="currentColor"><path d="M8 5.5v13l11-6.5-11-6.5Z"/></svg>
+          </span>
+          <span class="vsl-label">VSL — 2-minute video: how it works</span>
+        </button>
       </div>
     </div>
   </section>
@@ -117,7 +112,6 @@
         <li><img src="assets/logos/client-2.svg" alt="Client name"></li>
         <li><img src="assets/logos/client-3.svg" alt="Client name"></li>
         <li><img src="assets/logos/client-4.svg" alt="Client name"></li>
-        <li><img src="assets/logos/client-5.svg" alt="Client name"></li>
       </ul>
     </div>
   </section>
@@ -127,7 +121,6 @@
   <!-- ============================= PAIN POINTS ============================= -->
   <section class="section" id="pain">
     <div class="container">
-      <span class="eyebrow reveal">The problem</span>
       <h2 class="section-title reveal">Are you dealing with any of this?</h2>
 
       <div class="grid grid-3">
@@ -147,12 +140,9 @@
     </div>
   </section>
 
-  <!-- =============================== WHY US ===============================
-       Light band: a Mint Frost card floating on the obsidian canvas.
-  -->
-  <div class="container band-wrap">
-    <section class="band-light" id="why">
-      <span class="eyebrow reveal">What we run</span>
+  <!-- =============================== WHY US =============================== -->
+  <section class="section" id="why">
+    <div class="container">
       <h2 class="section-title reveal">You bring the offer and take the calls. We do the rest.</h2>
 
       <div class="grid grid-3">
@@ -187,13 +177,12 @@
           <p>Domains, lists, and copy transfer to you if you leave.</p>
         </article>
       </div>
-    </section>
-  </div>
+    </div>
+  </section>
 
   <!-- ============================ BUILD VS BUY ============================ -->
   <section class="section" id="build-vs-buy">
     <div class="container">
-      <span class="eyebrow reveal">Build vs buy</span>
       <h2 class="section-title reveal">This is a whole department. We already built it.</h2>
 
       <div class="compare">
@@ -224,12 +213,9 @@
     </div>
   </section>
 
-  <!-- =============================== PROCESS ===============================
-       Light band.
-  -->
-  <div class="container band-wrap">
-    <section class="band-light" id="process">
-      <span class="eyebrow reveal">How it works</span>
+  <!-- =============================== PROCESS =============================== -->
+  <section class="section" id="process">
+    <div class="container">
       <h2 class="section-title reveal">Three steps. You only show up for the last one.</h2>
 
       <ol class="steps">
@@ -249,13 +235,12 @@
           <p>Qualified calls hit your calendar with a short brief. You show up and close.</p>
         </li>
       </ol>
-    </section>
-  </div>
+    </div>
+  </section>
 
   <!-- ============================ WHO THIS IS FOR ============================ -->
   <section class="section" id="fit">
     <div class="container">
-      <span class="eyebrow reveal">Qualification</span>
       <h2 class="section-title reveal">We don't pick by industry. We pick by whether the math works.</h2>
 
       <div class="compare">
@@ -282,26 +267,106 @@
     </div>
   </section>
 
-  <!-- ============================ RISK REVERSAL ============================
-       Light band.
+  <!-- ============================ ROI CALCULATOR ============================
+       Runs entirely in the browser — no data leaves the page. Every figure is
+       the visitor's own input; nothing here quotes a SYSTEMERGE price.
   -->
-  <div class="container band-wrap">
-    <section class="band-light risk" id="guarantee">
-      <span class="eyebrow reveal">Risk reversal</span>
-      <h2 class="risk-title reveal">You only pay for calls that count.</h2>
-      <p class="risk-body reveal">
-        A qualified call is a real decision-maker who fits your business and shows up. No-show or
-        wrong fit, no charge. No retainer. No long contract. Nothing leaves your pocket until a
-        real call is on your calendar.
+  <section class="section" id="roi">
+    <div class="container">
+      <h2 class="section-title reveal">Run the math before you book.</h2>
+      <p class="section-sub reveal">
+        Put your own numbers in. If it doesn't clear, we'd rather you find out here than on a call.
       </p>
-      <a class="btn btn-primary btn-lg reveal" href="#book" data-book>Book the strategy call</a>
-    </section>
-  </div>
+
+      <div class="calc">
+        <!-- Inputs ------------------------------------------------------- -->
+        <div class="calc-panel reveal">
+          <div class="field">
+            <label for="roi-calls">Qualified calls per month</label>
+            <div class="field-row">
+              <input type="range" id="roi-calls-range" min="4" max="80" step="1" value="20"
+                     aria-label="Qualified calls per month, slider">
+              <input type="number" id="roi-calls" min="1" max="500" step="1" value="20" inputmode="numeric">
+            </div>
+          </div>
+
+          <div class="field">
+            <label for="roi-close">Close rate from qualified calls</label>
+            <div class="field-row">
+              <input type="range" id="roi-close-range" min="1" max="60" step="1" value="20"
+                     aria-label="Close rate percentage, slider">
+              <input type="number" id="roi-close" min="1" max="100" step="1" value="20" inputmode="numeric">
+            </div>
+            <span class="hint">Percent of held calls that become clients.</span>
+          </div>
+
+          <div class="field">
+            <label for="roi-value">Average value of one client</label>
+            <input type="number" id="roi-value" min="0" step="500" value="10000" inputmode="numeric">
+            <span class="hint">Total revenue you expect from a client, not just the first invoice.</span>
+          </div>
+
+          <div class="field">
+            <label for="roi-cost">Your cost per qualified call</label>
+            <input type="number" id="roi-cost" min="0" step="25" value="300" inputmode="numeric">
+            <span class="hint">Your estimate. The real figure depends on your market and gets set on the call.</span>
+          </div>
+        </div>
+
+        <!-- Outputs ------------------------------------------------------ -->
+        <div class="calc-panel reveal">
+          <dl class="calc-out" aria-live="polite">
+            <div class="calc-row">
+              <dt>New clients per month</dt>
+              <dd data-roi-clients>4</dd>
+            </div>
+            <div class="calc-row">
+              <dt>Revenue per month</dt>
+              <dd data-roi-revenue>$40,000</dd>
+            </div>
+            <div class="calc-row">
+              <dt>Cost per month</dt>
+              <dd data-roi-spend>$6,000</dd>
+            </div>
+            <div class="calc-row">
+              <dt>Net per month</dt>
+              <dd data-roi-net>$34,000</dd>
+            </div>
+
+            <div class="calc-hero" data-roi-state>
+              <dt>Return per $1 spent</dt>
+              <dd data-roi-multiple>6.7&times;</dd>
+              <p class="calc-sub" data-roi-breakeven></p>
+            </div>
+          </dl>
+
+          <p class="calc-foot">
+            Nothing here is a quote. It's arithmetic on numbers you entered, and it runs in your
+            browser — none of it is sent anywhere.
+          </p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================ RISK REVERSAL ============================ -->
+  <section class="section" id="guarantee">
+    <div class="container">
+      <div class="risk reveal">
+        <h2 class="risk-title">You only pay for calls that count.</h2>
+        <p class="risk-body">
+          A qualified call is a real decision-maker who fits your business and shows up. No-show or
+          wrong fit, no charge. No retainer. No long contract. Nothing leaves your pocket until a
+          real call is on your calendar.
+        </p>
+        <a class="btn btn-primary btn-lg" href="#book" data-book>Book the strategy call</a>
+      </div>
+    </div>
+  </section>
 
   <!-- ================================= FAQ ================================= -->
   <section class="section" id="faq">
     <div class="container container-narrow">
-      <span class="eyebrow reveal">Answers</span>
       <h2 class="section-title reveal">FAQ</h2>
 
       <div class="faq">
@@ -350,12 +415,9 @@
     </div>
   </section>
 
-  <!-- =============================== BOOKING ===============================
-       Light band.
-  -->
-  <div class="container band-wrap">
-    <section class="band-light section-center" id="book">
-      <span class="eyebrow reveal">Book the call</span>
+  <!-- =============================== BOOKING =============================== -->
+  <section class="section section-center" id="book">
+    <div class="container container-narrow">
       <h2 class="section-title reveal">See if this works for your business.</h2>
       <p class="section-sub reveal">
         Thirty minutes. We size your market, review the economics, and outline the work.
@@ -383,8 +445,8 @@
       <p class="micro center reveal">
         Prefer email? <a href="mailto:hello@systemerge.com" data-contact-email>hello@systemerge.com</a>
       </p>
-    </section>
-  </div>
+    </div>
+  </section>
 
 </main>
 

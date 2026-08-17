@@ -22,24 +22,6 @@
     el.textContent = String(Math.max(2026, new Date().getFullYear()));
   });
 
-  /* --------------------------------------------------------- announcement --
-     The green strip is dismissible. The choice is remembered for the session
-     only, so a returning visitor sees the scarcity line again.
-  -------------------------------------------------------------------------- */
-  var announce = document.querySelector("[data-announce]");
-  var announceClose = document.querySelector("[data-announce-close]");
-
-  if (announce && announceClose) {
-    try {
-      if (sessionStorage.getItem("announce-dismissed") === "1") announce.hidden = true;
-    } catch (e) { /* storage blocked — just leave the bar up */ }
-
-    announceClose.addEventListener("click", function () {
-      announce.hidden = true;
-      try { sessionStorage.setItem("announce-dismissed", "1"); } catch (e) {}
-    });
-  }
-
   /* --------------------------------------------------------------- header --
      Adds a hairline border once the page has scrolled off the top.
   -------------------------------------------------------------------------- */
@@ -53,9 +35,10 @@
   /* ----------------------------------------------------------- mobile nav -- */
   var toggle = document.querySelector(".nav-toggle");
   var mobileNav = document.getElementById("mobile-nav");
+  var setNav = function () {};
 
   if (toggle && mobileNav) {
-    var setNav = function (open) {
+    setNav = function (open) {
       toggle.setAttribute("aria-expanded", String(open));
       toggle.setAttribute("aria-label", open ? "Close menu" : "Open menu");
       mobileNav.hidden = !open;
@@ -88,11 +71,21 @@
     btn.addEventListener("click", function (e) {
       if (!booking) return;
       e.preventDefault();
-      booking.scrollIntoView({
-        behavior: reduceMotion ? "auto" : "smooth",
-        block: "start"
-      });
-      history.replaceState(null, "", "#book");
+
+      // Collapse the mobile menu BEFORE measuring the scroll target. Closing it
+      // afterwards removes ~230px of layout above the target and lands the
+      // scroll well past the section.
+      var wasOpen = mobileNav && !mobileNav.hidden;
+      if (wasOpen) setNav(false);
+
+      var go = function () {
+        booking.scrollIntoView({
+          behavior: reduceMotion ? "auto" : "smooth",
+          block: "start"
+        });
+        history.replaceState(null, "", "#book");
+      };
+      if (wasOpen) requestAnimationFrame(go); else go();
     });
   });
 
@@ -140,7 +133,7 @@
       holder.style.minWidth = "320px";
       holder.style.height = "700px";
       holder.setAttribute("data-url", calendlyUrl + (calendlyUrl.indexOf("?") === -1 ? "?" : "&") +
-        "hide_gdpr_banner=1&background_color=ffffff&text_color=132322&primary_color=3ddc91");
+        "hide_gdpr_banner=1&background_color=0b0b0b&text_color=f5f5f5&primary_color=a881fe");
 
       calendly.replaceChildren(holder);
       calendly.classList.add("is-live");
@@ -162,6 +155,105 @@
     } else {
       mountCalendly();
     }
+  }
+
+  /* ---------------------------------------------------------- ROI calculator --
+     Pure arithmetic on the visitor's own inputs. Nothing is transmitted, and
+     no figure here represents a SYSTEMERGE price.
+  -------------------------------------------------------------------------- */
+  var roi = document.getElementById("roi");
+
+  if (roi) {
+    var money = new Intl.NumberFormat(undefined, {
+      style: "currency", currency: "USD", maximumFractionDigits: 0
+    });
+
+    var num = function (id) { return document.getElementById(id); };
+    var fields = {
+      calls: num("roi-calls"), callsRange: num("roi-calls-range"),
+      close: num("roi-close"), closeRange: num("roi-close-range"),
+      value: num("roi-value"), cost: num("roi-cost")
+    };
+    var out = {
+      clients:   roi.querySelector("[data-roi-clients]"),
+      revenue:   roi.querySelector("[data-roi-revenue]"),
+      spend:     roi.querySelector("[data-roi-spend]"),
+      net:       roi.querySelector("[data-roi-net]"),
+      multiple:  roi.querySelector("[data-roi-multiple]"),
+      breakeven: roi.querySelector("[data-roi-breakeven]"),
+      state:     roi.querySelector("[data-roi-state]")
+    };
+
+    // Clamp to the input's own min/max so typed values can't produce nonsense.
+    var read = function (el, fallback) {
+      var v = parseFloat(el.value);
+      if (!isFinite(v)) return fallback;
+      var min = parseFloat(el.min), max = parseFloat(el.max);
+      if (isFinite(min) && v < min) v = min;
+      if (isFinite(max) && v > max) v = max;
+      return v;
+    };
+
+    var recalc = function () {
+      var calls = read(fields.calls, 20);
+      var close = read(fields.close, 20) / 100;
+      var value = read(fields.value, 10000);
+      var cost  = read(fields.cost, 300);
+
+      var clients = calls * close;
+      var revenue = clients * value;
+      var spend   = calls * cost;
+      var net     = revenue - spend;
+
+      // Whole numbers read as "4", fractions keep one decimal ("4.5").
+      out.clients.textContent = Number.isInteger(clients)
+        ? String(clients)
+        : (clients < 10 ? clients.toFixed(1) : String(Math.round(clients)));
+      out.revenue.textContent = money.format(revenue);
+      out.spend.textContent   = money.format(spend);
+      out.net.textContent     = money.format(net);
+
+      if (spend > 0) {
+        var mult = revenue / spend;
+        out.multiple.textContent = mult.toFixed(1) + "×";
+        out.state.setAttribute("data-state", mult >= 1 ? "gain" : "loss");
+      } else {
+        out.multiple.textContent = "—";
+        out.state.setAttribute("data-state", "gain");
+      }
+
+      // The close rate at which revenue exactly covers spend.
+      if (value > 0) {
+        var be = (cost / value) * 100;
+        out.breakeven.textContent = be <= 100
+          ? "Breaks even at a " + (be < 1 ? be.toFixed(2) : be.toFixed(1)) + "% close rate."
+          : "A client is worth less than a call costs at these numbers.";
+      } else {
+        out.breakeven.textContent = "Enter what a client is worth to see the break-even point.";
+      }
+    };
+
+    // Keep each slider and its number box in step, then recalculate.
+    var pair = function (a, b) {
+      if (!a || !b) return;
+      a.addEventListener("input", function () { b.value = a.value; recalc(); });
+      b.addEventListener("input", function () { a.value = b.value; recalc(); });
+    };
+    pair(fields.callsRange, fields.calls);
+    pair(fields.closeRange, fields.close);
+
+    [fields.value, fields.cost].forEach(function (el) {
+      if (el) el.addEventListener("input", recalc);
+    });
+    // Re-clamp once the field loses focus, so a typed 900 settles to the max.
+    Object.keys(fields).forEach(function (k) {
+      if (fields[k]) fields[k].addEventListener("change", function () {
+        fields[k].value = read(fields[k], fields[k].value);
+        recalc();
+      });
+    });
+
+    recalc();
   }
 
   /* ---------------------------------------------------------- reveal-on-scroll */

@@ -6,8 +6,8 @@ No build step, no dependencies — open `index.html` or serve the folder.
 ```
 index.html            # all copy and structure
 assets/styles.css     # design tokens + styles
-assets/main.js        # nav, CTA scroll, VSL + Calendly loaders, reveal animations
-assets/fonts/         # self-hosted Inter, Playfair Display, IBM Plex Mono (232KB)
+assets/main.js        # nav, CTA scroll, VSL + Calendly loaders, ROI calculator, reveals
+assets/fonts/         # self-hosted Inter + Space Grotesk (~85KB)
 ```
 
 Local preview:
@@ -18,8 +18,6 @@ python3 -m http.server 8000   # then open http://localhost:8000
 
 ## Before it goes live
 
-Five placeholders, each marked with an HTML comment in `index.html`.
-
 | What | Where | How |
 |---|---|---|
 | **Calendly** | `data-calendly-url=""` | Paste your scheduling link. The widget lazy-loads when the section nears the viewport. Empty = styled placeholder. |
@@ -27,78 +25,70 @@ Five placeholders, each marked with an HTML comment in `index.html`.
 | **Contact email** | `[data-contact-email]` | Replace `hello@systemerge.com` in both the `mailto:` href and the link text. |
 | **Client logos** | `<!-- CLIENT LOGOS -->` block | Ships commented out, as specified. Drop files into `assets/logos/`, uncomment, update each `src`/`alt`. |
 | **Scarcity month** | automatic | Fills with the current month via JS. To pin a month, replace `<span data-current-month>` with plain text. |
+| **ROI defaults** | `#roi` inputs | The `value=""` on each input is the starting figure a visitor sees. Change them to whatever is typical for your market. |
+
+## ROI calculator
+
+Lives at `#roi`, linked from the nav. Four inputs — qualified calls per month,
+close rate, average client value, and cost per qualified call — produce new
+clients, revenue, cost, net, a return multiple, and the break-even close rate.
+
+Three things it deliberately does **not** do:
+
+- **It quotes no price.** Cost per call is the visitor's own input, labelled as
+  their estimate, with a note that the real figure is set on the call. Nothing
+  on the page presents a SYSTEMERGE rate.
+- **It sends nothing.** All arithmetic runs in the browser. There is no form
+  post, no analytics call, no storage.
+- **It doesn't only sell.** When the numbers don't clear, the result switches to
+  a muted state and reports the loss honestly — which is the same promise the
+  hero makes ("we'll tell you on the first call if the economics don't work").
+
+Verified against hand-computed values, including a loss case, a divide-by-zero
+guard on client value, and clamping of out-of-range typed input.
 
 ## Design system
 
-Implements the **Resend** style reference — "black velvet with violet neon."
-Every value is a CSS custom property in the `:root` block at the top of
-`assets/styles.css`.
+Implements the **Uizard** style reference — "violet aurora over obsidian."
+Every value is a CSS custom property in the `:root` block of `assets/styles.css`.
 
-The canvas is pure `#000000` throughout — no gradients, glows or chromatic
-washes, and no light/dark alternation. Depth comes entirely from 1px `#292d30`
-hairlines; there is not a single drop shadow in the stylesheet.
+The canvas is Obsidian `#0b0b0b` throughout. There are no alternating bands —
+variation comes from card presence and the hero bloom alone, exactly as the
+reference specifies.
 
 **Rules the stylesheet holds to:**
 
-- Buttons are ghost — transparent fill, hairline border, white label. Never filled, never colorful
-- Radius scale is exactly two values: 16px cards, 6px buttons/badges/inputs, plus 24px on the one large panel. The announcement badge is the single pill, per its component spec
-- Iris Violet `#9281f7` belongs to code strings and identifiers only. It is never a heading colour and never lands on a button
-- Status hues (green/blue/violet-glow/amber) appear only in the status indicator row
-- The hero is an editorial serif at -0.01em; section headlines are a geometric sans with -0.05em tracking — the compressed tracking is the signature
+- Violet Glow `#a881fe` is reserved for the primary action, the sparkle indicator and the hero glow. Nothing else.
+- Signal Blue `#1e90ff` is the nav utility action only, and never shares a surface with the violet.
+- Cards are 1px Graphite hairlines at 16px radius — outlines, not panels. No drop shadows on cards.
+- The radius scale stays plural: 16px cards, 12px buttons, 8px inputs, 9999px pills.
+- The violet outer glow belongs to the primary CTA and nothing else.
+- Section headers stand alone — no eyebrow, no subtitle.
 
-**Font substitutions.** Domaine, aBC Favorit and Commit Mono are commercial. The
-reference names substitutes for each, and those are what's used: Playfair
-Display for the Domaine hero, Inter for aBC Favorit headlines and body, IBM Plex
-Mono for Commit Mono. All self-hosted, so the page makes no third-party font
-request. To switch to the real faces, add their `@font-face` blocks and repoint
-`--font-display` / `--font-sans` / `--font-mono`.
-
-**Hero cube.** The reference's WebGL cube is done in CSS 3D instead — six black
-faces with hairline edges, a 26s rotation, no glow and no colour. It costs
-nothing, needs no library, and holds still under `prefers-reduced-motion`.
-
-**Terminal window.** The system uses code windows as its product-proof surface,
-and that is the only place the violet legitimately belongs. The one on the page
-shows a sending setup with the `from:`/`reply_to:` split that keeps your main
-domain clean. It is **illustrative, not real campaign data** — no metrics or
-results are claimed. Delete the block if you'd rather not show a sample.
+**Font substitutions.** Satoshi and Clash Grotesk are commercial; the reference
+names Inter and Space Grotesk Bold as substitutes, and both are self-hosted, so
+the page makes no third-party font request.
 
 ### Three deliberate deviations
 
-1. **The display step is capped at 68px, not 96px.** The reference's 96px hero
-   carries a three-word statement. Ours is a full sentence, and at 96px it wrapped
-   to seven lines and pushed the CTA off-screen. The type role is unchanged.
+1. **The primary CTA label is Carbon `#212121`, not white.** The reference
+   specifies white on `#a881fe`, which measures **2.90:1** — below AA, on the
+   page's most important control. Carbon reaches 5.55:1, and the reference's own
+   prompt guide already pairs `#212121` with a filled action.
 
-2. **Ghost buttons use Iron `#6e727a` for the border, not Graphite `#292d30`.**
-   A ghost button's border is its only affordance, and Graphite on black measures
-   **1.51:1** — effectively invisible. Iron is the palette's own "low-emphasis
-   borders" token and clears the 3:1 non-text threshold at 4.35:1. Cards and
-   dividers still use Graphite as specified.
+2. **The nav utility button uses the same Carbon label.** White on Signal Blue
+   is **3.24:1**, which fails for 14px text. Carbon reaches 4.98:1.
 
-3. **Code comments use Ash Gray, not Charcoal `#464a4d`.** Charcoal is
-   **2.35:1** on black. The reference describes it as "text that should
-   disappear into the surface," which is fine for decoration but not for lines
-   that carry meaning.
-
-The reference also contradicts itself on the primary action: the Primary Button
-component and the Do's list both insist buttons stay ghost and never filled,
-while the Agent Prompt Guide lists "#3b9eff (filled action)". Two of three say
-ghost, so ghost it is. If you'd rather trade fidelity for conversion punch, a
-white-filled CTA is a two-line change to `.btn` — the reference permits
-"white-text-on-black" as the alternative.
-
-### Added labels
-
-The system pairs a technical eyebrow with each section headline. These short
-mono labels aren't in the supplied copy — *The problem, What we run, Build vs
-buy, How it works, Qualification, Answers, Book the call*. Your headline and
-body copy is verbatim.
+3. **Form inputs use a `#606060` border, not Graphite `#2e2e2e`.** Graphite is
+   1.45:1 on Obsidian. That's fine for a card outline, where the content carries
+   the boundary, but a form control's border *is* its affordance and needs 3:1.
+   `#606060` is the nearest neutral that clears it, at 3.13:1.
 
 ## Conversion wiring
 
 - Every **Book the strategy call** / **Book the call** button targets `#book`
-  and smooth-scrolls to the Calendly section. They work without JS too.
-- Nav: **How it works** → `#process`, **FAQ** → `#faq`.
+  and smooth-scrolls there. They work without JS too.
+- Nav: **How it works** → `#process`, **FAQ** → `#faq`, **ROI Calculator** → `#roi`.
 - FAQ uses native `<details>`, so answers are open to search engines and work
   with JS disabled.
 
@@ -106,12 +96,12 @@ body copy is verbatim.
 
 - Skip link, labeled landmarks, visible focus rings, `aria-expanded` on the
   mobile menu, Escape to close, 44px tap target.
-- All text/background pairs meet WCAG AA (see deviations 2 and 3).
-- `prefers-reduced-motion` disables reveal animations, smooth scrolling and the
-  cube rotation.
+- Calculator inputs are properly labelled; results are in an `aria-live` region
+  so screen readers hear them update.
+- All text/background pairs meet WCAG AA (see the three deviations above).
+- `prefers-reduced-motion` disables reveal animations and smooth scrolling.
 - Reveal animations are gated behind a `.js` class set inline in `<head>`, so
   the page is fully visible with scripts disabled.
-- No frameworks and no third-party requests on load. Calendly and the video
-  player load lazily / on click.
+- No frameworks and no third-party requests on load.
 - Verified with no horizontal overflow at 1920, 1440, 1180, 1024, 820, 768,
   480, 390 and 320px.
