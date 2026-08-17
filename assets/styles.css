@@ -192,7 +192,7 @@ img, svg { max-width: 100%; display: block; }
 ::selection { background: var(--color-violet-glow); color: var(--color-carbon); }
 
 :focus-visible {
-  outline: 2px solid var(--color-violet-glow);
+  outline: 3px solid var(--color-violet-glow);
   outline-offset: 3px;
   border-radius: var(--radius-input);
 }
@@ -324,7 +324,9 @@ img, svg { max-width: 100%; display: block; }
   display: inline-flex;
   align-items: center;
   gap: 6px;
+  padding-block: 6px;
   padding-inline: var(--space-8);
+  min-height: 24px;
   color: var(--text);
   font-size: var(--text-body-sm);
   font-weight: var(--w-480);
@@ -929,6 +931,11 @@ img, svg { max-width: 100%; display: block; }
   color: var(--text-muted);
   font-size: var(--text-body-sm);
   letter-spacing: var(--tk-body-sm);
+}
+.footer-inner a {
+  display: inline-flex;
+  align-items: center;
+  min-height: 24px;
 }
 .footer-inner a:hover { color: var(--color-pure-white); }
 .copyright { margin-left: auto; }
