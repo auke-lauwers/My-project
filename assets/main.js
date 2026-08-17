@@ -22,6 +22,24 @@
     el.textContent = String(Math.max(2026, new Date().getFullYear()));
   });
 
+  /* --------------------------------------------------------- announcement --
+     The green strip is dismissible. The choice is remembered for the session
+     only, so a returning visitor sees the scarcity line again.
+  -------------------------------------------------------------------------- */
+  var announce = document.querySelector("[data-announce]");
+  var announceClose = document.querySelector("[data-announce-close]");
+
+  if (announce && announceClose) {
+    try {
+      if (sessionStorage.getItem("announce-dismissed") === "1") announce.hidden = true;
+    } catch (e) { /* storage blocked — just leave the bar up */ }
+
+    announceClose.addEventListener("click", function () {
+      announce.hidden = true;
+      try { sessionStorage.setItem("announce-dismissed", "1"); } catch (e) {}
+    });
+  }
+
   /* --------------------------------------------------------------- header --
      Adds a hairline border once the page has scrolled off the top.
   -------------------------------------------------------------------------- */
@@ -122,7 +140,7 @@
       holder.style.minWidth = "320px";
       holder.style.height = "700px";
       holder.setAttribute("data-url", calendlyUrl + (calendlyUrl.indexOf("?") === -1 ? "?" : "&") +
-        "hide_gdpr_banner=1&background_color=000000&text_color=f0f0f0&primary_color=9281f7");
+        "hide_gdpr_banner=1&background_color=ffffff&text_color=132322&primary_color=3ddc91");
 
       calendly.replaceChildren(holder);
       calendly.classList.add("is-live");
