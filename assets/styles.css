@@ -980,3 +980,23 @@ img, svg { max-width: 100%; display: block; }
   font-size: var(--text-subheading);
   letter-spacing: var(--tk-subheading);
 }
+
+/* ---------------------------------------------------------- ROI embed slot --
+   Used when an external calculator URL is configured. The built-in calculator
+   is hidden in that case, so only one is ever on the page.
+   -------------------------------------------------------------------------- */
+.calc-embed { display: none; margin-top: var(--space-40); }
+.calc-embed[data-active] { display: block; }
+.calc-embed-frame {
+  position: relative;
+  width: 100%;
+  min-height: 1480px;
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius-card);
+  overflow: hidden;
+  background: var(--color-void-black);
+}
+.calc-embed-frame iframe { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; }
+.calc-embed .calc-foot { text-align: center; }
+.calc-embed .calc-foot a { color: var(--color-violet-glow); }
+@media (max-width: 768px) { .calc-embed-frame { min-height: 760px; } }

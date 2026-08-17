@@ -163,7 +163,47 @@
   -------------------------------------------------------------------------- */
   var roi = document.getElementById("roi");
 
-  if (roi) {
+  /* ------------------------------------------------- external calculator --
+     When an embed URL is configured, frame it and hide the built-in
+     calculator so only one is ever on the page. The iframe is sandboxed and
+     its height is driven by postMessage from the embedded app, with the
+     origin checked before any message is trusted.
+  -------------------------------------------------------------------------- */
+  var embed = document.querySelector("[data-roi-embed]");
+  var embedUrl = embed ? (embed.getAttribute("data-roi-embed-url") || "").trim() : "";
+
+  if (embed && embedUrl) {
+    var builtIn = document.querySelector("[data-roi-builtin]");
+    if (builtIn) builtIn.hidden = true;
+    embed.setAttribute("data-active", "");
+
+    var frameWrap = embed.querySelector("[data-roi-frame]");
+    var link = embed.querySelector("[data-roi-embed-link]");
+    if (link) link.href = embedUrl;
+
+    var frame = document.createElement("iframe");
+    frame.src = embedUrl;
+    frame.title = "ROI calculator";
+    frame.loading = "lazy";
+    frame.setAttribute("sandbox", "allow-scripts allow-same-origin allow-forms");
+    frameWrap.appendChild(frame);
+
+    var embedOrigin = "";
+    try { embedOrigin = new URL(embedUrl).origin; } catch (e) {}
+
+    window.addEventListener("message", function (e) {
+      if (!embedOrigin || e.origin !== embedOrigin) return;
+      var d = e.data, h = 0;
+      if (typeof d === "number") h = d;
+      else if (d && typeof d === "object") h = d.height || d.frameHeight || d.scrollHeight || 0;
+      if (h > 400 && h < 8000) {
+        var cur = parseInt(frameWrap.style.height, 10) || 0;
+        if (Math.abs(h - cur) > 2) frameWrap.style.height = h + "px";
+      }
+    });
+  }
+
+  if (roi && !(embed && embedUrl)) {
     var money = new Intl.NumberFormat(undefined, {
       style: "currency", currency: "USD", maximumFractionDigits: 0
     });

@@ -278,7 +278,22 @@
         Put your own numbers in. If it doesn't clear, we'd rather you find out here than on a call.
       </p>
 
-      <div class="calc">
+      <!--
+        EXTERNAL CALCULATOR SWITCH
+        data-roi-embed-url non-empty  -> that URL is framed here and the
+                                         built-in calculator below is hidden.
+        data-roi-embed-url empty      -> the built-in calculator is used.
+        Clear the attribute to fall back to the built-in one at any time.
+      -->
+      <div class="calc-embed reveal" data-roi-embed data-roi-embed-url="https://calculator.liquidconsulting.co">
+        <div class="calc-embed-frame" data-roi-frame></div>
+        <p class="calc-foot">
+          Calculator not loading?
+          <a data-roi-embed-link href="#" target="_blank" rel="noopener noreferrer">Open it in a new tab.</a>
+        </p>
+      </div>
+
+      <div class="calc" data-roi-builtin>
         <!-- Inputs ------------------------------------------------------- -->
         <div class="calc-panel reveal">
           <div class="field">
