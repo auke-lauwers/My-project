@@ -309,9 +309,14 @@ img, svg { max-width: 100%; display: block; }
   align-items: center;
   gap: var(--space-8);
   color: var(--color-pure-white);
-  font-size: var(--text-subheading);
-  font-weight: var(--w-640);
-  letter-spacing: -0.02em;
+  /* Matches the supplied wordmark: heavy, wide, tightly set caps. A logo is a
+     brand asset, so it sits outside the type scale — the display face being
+     hero-only governs headings, not the mark. */
+  font-family: var(--font-display);
+  font-size: var(--text-heading-sm);
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  text-transform: uppercase;
 }
 
 .nav { display: flex; align-items: center; gap: var(--space-32); }
@@ -956,4 +961,22 @@ img, svg { max-width: 100%; display: block; }
 @media (max-width: 400px) {
   .btn { white-space: normal; text-wrap: balance; }
   .btn-lg { padding: var(--space-16) var(--space-20); font-size: var(--text-body); }
+}
+
+/* Handoff from the calculator into the booking section. */
+.calc-cta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-16);
+  margin-top: var(--space-24);
+  padding: var(--space-24);
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius-card);
+}
+.calc-cta p {
+  color: var(--text-muted);
+  font-size: var(--text-subheading);
+  letter-spacing: var(--tk-subheading);
 }
