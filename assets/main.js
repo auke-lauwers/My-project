@@ -158,140 +158,145 @@
   }
 
   /* ---------------------------------------------------------- ROI calculator --
-     Pure arithmetic on the visitor's own inputs. Nothing is transmitted, and
-     no figure here represents a SYSTEMERGE price.
+     Two modes — a 60-day pilot and an ongoing retainer — driven entirely by
+     sliders. Pure arithmetic on the visitor's own inputs. Nothing is
+     transmitted, and no figure here represents a SYSTEMERGE price.
+
+     The funnel rounds at each stage, matching how these projections are
+     normally read: whole replies produce whole leads produce whole calls.
   -------------------------------------------------------------------------- */
   var roi = document.getElementById("roi");
 
-  /* ------------------------------------------------- external calculator --
-     When an embed URL is configured, frame it and hide the built-in
-     calculator so only one is ever on the page. The iframe is sandboxed and
-     its height is driven by postMessage from the embedded app, with the
-     origin checked before any message is trusted.
-  -------------------------------------------------------------------------- */
-  var embed = document.querySelector("[data-roi-embed]");
-  var embedUrl = embed ? (embed.getAttribute("data-roi-embed-url") || "").trim() : "";
+  if (roi) {
+    var WEEKDAYS = { pilot: 42, retainer: 21 };
+    var mode = "pilot";
 
-  if (embed && embedUrl) {
-    var builtIn = document.querySelector("[data-roi-builtin]");
-    if (builtIn) builtIn.hidden = true;
-    embed.setAttribute("data-active", "");
-
-    var frameWrap = embed.querySelector("[data-roi-frame]");
-    var link = embed.querySelector("[data-roi-embed-link]");
-    if (link) link.href = embedUrl;
-
-    var frame = document.createElement("iframe");
-    frame.src = embedUrl;
-    frame.title = "ROI calculator";
-    frame.loading = "lazy";
-    frame.setAttribute("sandbox", "allow-scripts allow-same-origin allow-forms");
-    frameWrap.appendChild(frame);
-
-    var embedOrigin = "";
-    try { embedOrigin = new URL(embedUrl).origin; } catch (e) {}
-
-    window.addEventListener("message", function (e) {
-      if (!embedOrigin || e.origin !== embedOrigin) return;
-      var d = e.data, h = 0;
-      if (typeof d === "number") h = d;
-      else if (d && typeof d === "object") h = d.height || d.frameHeight || d.scrollHeight || 0;
-      if (h > 400 && h < 8000) {
-        var cur = parseInt(frameWrap.style.height, 10) || 0;
-        if (Math.abs(h - cur) > 2) frameWrap.style.height = h + "px";
-      }
-    });
-  }
-
-  if (roi && !(embed && embedUrl)) {
-    var money = new Intl.NumberFormat(undefined, {
+    var money = new Intl.NumberFormat("en-US", {
       style: "currency", currency: "USD", maximumFractionDigits: 0
     });
+    var num = new Intl.NumberFormat("en-US");
+    var $ = function (s) { return roi.querySelector(s); };
+    var id = function (s) { return document.getElementById(s); };
 
-    var num = function (id) { return document.getElementById(id); };
-    var fields = {
-      calls: num("roi-calls"), callsRange: num("roi-calls-range"),
-      close: num("roi-close"), closeRange: num("roi-close-range"),
-      value: num("roi-value"), cost: num("roi-cost")
+    var f = {
+      daily: id("roi-daily"), steps: id("roi-steps"), reply: id("roi-reply"),
+      positive: id("roi-positive"), book: id("roi-book"), show: id("roi-show"),
+      close: id("roi-close"), deal: id("roi-deal"), retention: id("roi-retention"),
+      cost: id("roi-cost")
     };
-    var out = {
-      clients:   roi.querySelector("[data-roi-clients]"),
-      revenue:   roi.querySelector("[data-roi-revenue]"),
-      spend:     roi.querySelector("[data-roi-spend]"),
-      net:       roi.querySelector("[data-roi-net]"),
-      multiple:  roi.querySelector("[data-roi-multiple]"),
-      breakeven: roi.querySelector("[data-roi-breakeven]"),
-      state:     roi.querySelector("[data-roi-state]")
-    };
+    var vars = [].slice.call(roi.querySelectorAll("[data-var]"));
+    var out = function (k) { return roi.querySelector('[data-out="' + k + '"]'); };
+    var val = function (el) { return parseFloat(el.value); };
 
-    // Clamp to the input's own min/max so typed values can't produce nonsense.
-    var read = function (el, fallback) {
-      var v = parseFloat(el.value);
-      if (!isFinite(v)) return fallback;
-      var min = parseFloat(el.min), max = parseFloat(el.max);
-      if (isFinite(min) && v < min) v = min;
-      if (isFinite(max) && v > max) v = max;
-      return v;
-    };
+    function recalc() {
+      var days = WEEKDAYS[mode];
+      var daily = val(f.daily), steps = val(f.steps);
+      var emails = daily * days;
+      var people = Math.round(emails / steps);
 
-    var recalc = function () {
-      var calls = read(fields.calls, 20);
-      var close = read(fields.close, 20) / 100;
-      var value = read(fields.value, 10000);
-      var cost  = read(fields.cost, 300);
+      // Offer variables lift the base positive rate proportionally, capped at
+      // 100% — additive points would run past any believable ceiling.
+      var lift = vars.reduce(function (t, v) {
+        return t + (v.checked ? parseFloat(v.getAttribute("data-var")) : 0);
+      }, 0);
+      var positive = Math.min(100, val(f.positive) * (1 + lift / 100));
 
-      var clients = calls * close;
-      var revenue = clients * value;
-      var spend   = calls * cost;
-      var net     = revenue - spend;
+      var replies    = Math.round(people * val(f.reply) / 100);
+      var interested = Math.round(replies * positive / 100);
+      var booked     = Math.round(interested * val(f.book) / 100);
+      var showed     = Math.round(booked * val(f.show) / 100);
+      var closed     = Math.round(showed * val(f.close) / 100);
 
-      // Whole numbers read as "4", fractions keep one decimal ("4.5").
-      out.clients.textContent = Number.isInteger(clients)
-        ? String(clients)
-        : (clients < 10 ? clients.toFixed(1) : String(Math.round(clients)));
-      out.revenue.textContent = money.format(revenue);
-      out.spend.textContent   = money.format(spend);
-      out.net.textContent     = money.format(net);
+      var ltv   = val(f.deal) * val(f.retention);
+      var added = closed * ltv;
+      var spend = val(f.cost);
+      var cac   = closed > 0 ? spend / closed : 0;
 
-      if (spend > 0) {
-        var mult = revenue / spend;
-        out.multiple.textContent = mult.toFixed(1) + "×";
-        out.state.setAttribute("data-state", mult >= 1 ? "gain" : "loss");
-      } else {
-        out.multiple.textContent = "—";
-        out.state.setAttribute("data-state", "gain");
+      // Slider read-outs
+      out("daily").textContent     = num.format(daily);
+      out("steps").textContent     = steps;
+      out("reply").textContent     = val(f.reply).toFixed(1) + "%";
+      out("positive").textContent  = val(f.positive) + "%";
+      out("book").textContent      = val(f.book) + "%";
+      out("show").textContent      = val(f.show) + "%";
+      out("close").textContent     = val(f.close) + "%";
+      out("deal").textContent      = money.format(val(f.deal));
+      out("retention").textContent = val(f.retention) + (val(f.retention) === 1 ? " month" : " months");
+      out("cost").textContent      = money.format(spend);
+
+      $("[data-roi-effective]").textContent = positive.toFixed(1) + "%";
+      $("[data-roi-ltv]").textContent = money.format(ltv);
+      $("[data-roi-reach]").textContent =
+        "~" + num.format(people) + " people contacted · ~" + num.format(emails) +
+        " emails over " + days + " weekdays";
+
+      // Results
+      $("[data-roi-emails]").textContent     = num.format(emails);
+      $("[data-roi-people]").textContent     = num.format(people);
+      $("[data-roi-replies]").textContent    = num.format(replies);
+      $("[data-roi-interested]").textContent = num.format(interested);
+      $("[data-roi-booked]").textContent     = num.format(booked);
+      $("[data-roi-showed]").textContent     = num.format(showed);
+      $("[data-roi-closed]").textContent     = num.format(closed);
+      $("[data-roi-cac]").textContent        = closed > 0 ? money.format(cac) : "—";
+      $("[data-roi-added]").textContent      = money.format(added);
+      $("[data-roi-spend]").textContent      = money.format(spend);
+
+      var mult = spend > 0 ? added / spend : 0;
+      $("[data-roi-multiple]").textContent = spend > 0 ? mult.toFixed(1) + "×" : "—";
+      $("[data-roi-state]").setAttribute("data-state", mult >= 1 ? "gain" : "loss");
+      $("[data-roi-verdict]").textContent = closed === 0
+        ? "At these numbers the campaign closes nobody. Raise volume or the funnel rates."
+        : (mult >= 1
+            ? "Every $1 returns " + money.format(mult) + " in lifetime value."
+            : "This doesn't clear. You'd spend more than the clients are worth.");
+
+      if (mode === "retainer") buildTrajectory(emails, booked, closed, ltv);
+    }
+
+    function buildTrajectory(emails, booked, closed, ltv) {
+      var body = $("[data-roi-tbody]");
+      var rows = "";
+      for (var m = 1; m <= 12; m++) {
+        rows += "<tr><td>Month " + m + "</td><td>" + num.format(emails * m) +
+                "</td><td>" + num.format(booked * m) +
+                "</td><td>" + num.format(closed * m) +
+                "</td><td>" + money.format(closed * ltv * m) + "</td></tr>";
       }
+      body.innerHTML = rows;
+    }
 
-      // The close rate at which revenue exactly covers spend.
-      if (value > 0) {
-        var be = (cost / value) * 100;
-        out.breakeven.textContent = be <= 100
-          ? "Breaks even at a " + (be < 1 ? be.toFixed(2) : be.toFixed(1)) + "% close rate."
-          : "A client is worth less than a call costs at these numbers.";
-      } else {
-        out.breakeven.textContent = "Enter what a client is worth to see the break-even point.";
-      }
-    };
-
-    // Keep each slider and its number box in step, then recalculate.
-    var pair = function (a, b) {
-      if (!a || !b) return;
-      a.addEventListener("input", function () { b.value = a.value; recalc(); });
-      b.addEventListener("input", function () { a.value = b.value; recalc(); });
-    };
-    pair(fields.callsRange, fields.calls);
-    pair(fields.closeRange, fields.close);
-
-    [fields.value, fields.cost].forEach(function (el) {
-      if (el) el.addEventListener("input", recalc);
-    });
-    // Re-clamp once the field loses focus, so a typed 900 settles to the max.
-    Object.keys(fields).forEach(function (k) {
-      if (fields[k]) fields[k].addEventListener("change", function () {
-        fields[k].value = read(fields[k], fields[k].value);
-        recalc();
+    function setMode(next) {
+      mode = next;
+      roi.querySelectorAll("[data-mode]").forEach(function (b) {
+        var on = b.getAttribute("data-mode") === next;
+        b.classList.toggle("is-active", on);
+        b.setAttribute("aria-selected", String(on));
       });
+      var pilot = next === "pilot";
+      $("[data-roi-window]").textContent =
+        "Volume over " + WEEKDAYS[next] + " weekdays.";
+      $("[data-roi-basis]").textContent =
+        pilot ? "Over the 60-day pilot." : "Per month, at 21 weekdays.";
+      $("[data-roi-costlabel]").textContent = pilot ? "Pilot cost" : "Monthly cost";
+      var traj = $("[data-roi-traj]");
+      traj.hidden = pilot;
+      // It starts hidden, so its reveal observer never fires; unhiding without
+      // this leaves a fully transparent table.
+      if (!pilot) traj.classList.add("is-visible");
+      $("#roi-panel").setAttribute("aria-labelledby", pilot ? "tab-pilot" : "tab-retainer");
+
+      // Retainer defaults to the lighter monthly footing.
+      f.daily.value = pilot ? 5000 : 2500;
+      f.cost.value  = pilot ? 10000 : 3150;
+      recalc();
+    }
+
+    roi.querySelectorAll("[data-mode]").forEach(function (b) {
+      b.addEventListener("click", function () { setMode(b.getAttribute("data-mode")); });
     });
+    Object.keys(f).forEach(function (k) { f[k].addEventListener("input", recalc); });
+    vars.forEach(function (v) { v.addEventListener("change", recalc); });
 
     recalc();
   }

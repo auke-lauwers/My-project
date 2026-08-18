@@ -29,23 +29,34 @@ python3 -m http.server 8000   # then open http://localhost:8000
 
 ## ROI calculator
 
-Lives at `#roi`, linked from the nav. Four inputs — qualified calls per month,
-close rate, average client value, and cost per qualified call — produce new
-clients, revenue, cost, net, a return multiple, and the break-even close rate.
+Lives at `#roi`, linked from the nav, with two modes:
+
+- **60-Day Pilot** — 42 weekdays of sending, one-off cost, single ROI figure.
+- **Retainer** — 21 weekdays a month, monthly cost, plus a cumulative
+  12-month trajectory table.
+
+Every figure is a **slider**: daily send volume, emails per person, reply rate,
+positive response rate, call booking / show / close rates, average deal size,
+retention, and cost. Six offer-variable toggles lift the positive response rate
+proportionally. All read-outs sit beside their label so the value is never
+hidden under the thumb, and the results panel is sticky on desktop so you can
+see the numbers move while dragging.
+
+The funnel rounds at each stage — whole replies produce whole leads produce
+whole calls — which is what makes the projections reconcile.
 
 Three things it deliberately does **not** do:
 
-- **It quotes no price.** Cost per call is the visitor's own input, labelled as
-  their estimate, with a note that the real figure is set on the call. Nothing
-  on the page presents a SYSTEMERGE rate.
-- **It sends nothing.** All arithmetic runs in the browser. There is no form
-  post, no analytics call, no storage.
-- **It doesn't only sell.** When the numbers don't clear, the result switches to
-  a muted state and reports the loss honestly — which is the same promise the
-  hero makes ("we'll tell you on the first call if the economics don't work").
+- **It quotes no price.** Cost is the visitor's own slider, labelled as their
+  estimate, with a note that the real figure is set on the call.
+- **It sends nothing.** All arithmetic runs in the browser.
+- **It doesn't only sell.** When the numbers don't clear, the headline result
+  switches to a muted state and says so plainly.
 
-Verified against hand-computed values, including a loss case, a divide-by-zero
-guard on client value, and clamping of out-of-range typed input.
+Verified against the supplied reference figures in both modes: pilot returns
+210,000 / 105,000 / 1,575 / 394 / 79 / 63 / 13 / $390,000 / 39.0x, and retainer
+returns 52,500 / 26,250 / 394 / 99 / 20 / 16 / 3 / $90,000 / 28.6x with a
+12-month trajectory ending at 630,000 emails and $1,080,000.
 
 ## Design system
 

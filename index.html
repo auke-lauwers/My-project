@@ -268,92 +268,136 @@
   </section>
 
   <!-- ============================ ROI CALCULATOR ============================
-       Runs entirely in the browser — no data leaves the page. Every figure is
-       the visitor's own input; nothing here quotes a SYSTEMERGE price.
+       Two modes: a 60-day pilot and an ongoing retainer. Every figure is the
+       visitor's own input, driven by sliders. Runs entirely in the browser —
+       nothing is transmitted, and no number here is a SYSTEMERGE quote.
   -->
   <section class="section" id="roi">
     <div class="container">
       <h2 class="section-title reveal">Run the math before you book.</h2>
       <p class="section-sub reveal">
-        Put your own numbers in. If it doesn't clear, we'd rather you find out here than on a call.
+        Drag any slider. If it doesn't clear, we'd rather you find out here than on a call.
       </p>
 
-      <!--
-        EXTERNAL CALCULATOR SWITCH
-        data-roi-embed-url non-empty  -> that URL is framed here and the
-                                         built-in calculator below is hidden.
-        data-roi-embed-url empty      -> the built-in calculator is used.
-        Clear the attribute to fall back to the built-in one at any time.
-      -->
-      <div class="calc-embed reveal" data-roi-embed data-roi-embed-url="https://calculator.liquidconsulting.co">
-        <div class="calc-embed-frame" data-roi-frame></div>
-        <p class="calc-foot">
-          Calculator not loading?
-          <a data-roi-embed-link href="#" target="_blank" rel="noopener noreferrer">Open it in a new tab.</a>
-        </p>
+      <div class="calc-modes reveal" role="tablist" aria-label="Calculator mode">
+        <button class="calc-mode is-active" type="button" role="tab" aria-selected="true"
+                id="tab-pilot" aria-controls="roi-panel" data-mode="pilot">60-Day Pilot</button>
+        <button class="calc-mode" type="button" role="tab" aria-selected="false"
+                id="tab-retainer" aria-controls="roi-panel" data-mode="retainer">Retainer</button>
       </div>
 
-      <div class="calc" data-roi-builtin>
-        <!-- Inputs ------------------------------------------------------- -->
+      <div class="calc" id="roi-panel" role="tabpanel" aria-labelledby="tab-pilot">
+
+        <!-- ------------------------------- inputs ------------------------------ -->
         <div class="calc-panel reveal">
+          <h3 class="calc-h">Campaign inputs</h3>
+          <p class="calc-note" data-roi-window>Volume over 42 weekdays.</p>
+
           <div class="field">
-            <label for="roi-calls">Qualified calls per month</label>
-            <div class="field-row">
-              <input type="range" id="roi-calls-range" min="4" max="80" step="1" value="20"
-                     aria-label="Qualified calls per month, slider">
-              <input type="number" id="roi-calls" min="1" max="500" step="1" value="20" inputmode="numeric">
-            </div>
+            <label for="roi-daily">Daily send volume<output data-out="daily">5,000</output></label>
+            <input type="range" id="roi-daily" min="250" max="20000" step="250" value="5000">
+            <span class="hint" data-roi-reach></span>
           </div>
 
           <div class="field">
-            <label for="roi-close">Close rate from qualified calls</label>
-            <div class="field-row">
-              <input type="range" id="roi-close-range" min="1" max="60" step="1" value="20"
-                     aria-label="Close rate percentage, slider">
-              <input type="number" id="roi-close" min="1" max="100" step="1" value="20" inputmode="numeric">
-            </div>
-            <span class="hint">Percent of held calls that become clients.</span>
+            <label for="roi-steps">Emails per person<output data-out="steps">2</output></label>
+            <input type="range" id="roi-steps" min="1" max="5" step="1" value="2">
+            <span class="hint">Initial email plus follow-ups in the sequence.</span>
           </div>
 
           <div class="field">
-            <label for="roi-value">Average value of one client</label>
-            <input type="number" id="roi-value" min="0" step="500" value="10000" inputmode="numeric">
-            <span class="hint">Total revenue you expect from a client, not just the first invoice.</span>
+            <label for="roi-reply">Reply rate<output data-out="reply">1.5%</output></label>
+            <input type="range" id="roi-reply" min="0.1" max="8" step="0.1" value="1.5">
+            <span class="hint">Share of people contacted who reply at all.</span>
           </div>
 
           <div class="field">
-            <label for="roi-cost">Your cost per qualified call</label>
-            <input type="number" id="roi-cost" min="0" step="25" value="300" inputmode="numeric">
+            <label for="roi-positive">Positive response rate<output data-out="positive">25%</output></label>
+            <input type="range" id="roi-positive" min="1" max="80" step="1" value="25">
+            <span class="hint">Share of replies that are genuinely interested. Offer variables below raise this.</span>
+          </div>
+
+          <fieldset class="calc-vars">
+            <legend>Offer variables</legend>
+            <p class="hint">Each one you can honestly claim lifts the positive response rate.</p>
+            <label class="var"><input type="checkbox" data-var="7.5"><span>Strong product-market fit</span><em>+7.5%</em></label>
+            <label class="var"><input type="checkbox" data-var="15"><span>Specific, measurable claims</span><em>+15%</em></label>
+            <label class="var"><input type="checkbox" data-var="10"><span>Guarantee or risk reversal</span><em>+10%</em></label>
+            <label class="var"><input type="checkbox" data-var="7.5"><span>Strong social presence</span><em>+7.5%</em></label>
+            <label class="var"><input type="checkbox" data-var="7.5"><span>Case studies available</span><em>+7.5%</em></label>
+            <label class="var"><input type="checkbox" data-var="20"><span>High-value lead magnet</span><em>+20%</em></label>
+            <p class="calc-effective">Effective positive response rate <strong data-roi-effective>25.0%</strong></p>
+          </fieldset>
+
+          <h3 class="calc-h calc-h--sep">Funnel performance</h3>
+
+          <div class="field">
+            <label for="roi-book">Call booking rate<output data-out="book">20%</output></label>
+            <input type="range" id="roi-book" min="1" max="100" step="1" value="20">
+            <span class="hint">Interested leads that book a call.</span>
+          </div>
+
+          <div class="field">
+            <label for="roi-show">Show rate<output data-out="show">80%</output></label>
+            <input type="range" id="roi-show" min="1" max="100" step="1" value="80">
+            <span class="hint">Booked calls that actually show up.</span>
+          </div>
+
+          <div class="field">
+            <label for="roi-close">Close rate<output data-out="close">21%</output></label>
+            <input type="range" id="roi-close" min="1" max="100" step="1" value="21">
+            <span class="hint">Held calls that become clients.</span>
+          </div>
+
+          <h3 class="calc-h calc-h--sep">Business economics</h3>
+
+          <div class="field">
+            <label for="roi-deal">Average deal size<output data-out="deal">$2,500</output></label>
+            <input type="range" id="roi-deal" min="250" max="50000" step="250" value="2500">
+          </div>
+
+          <div class="field">
+            <label for="roi-retention">Average retention<output data-out="retention">12 months</output></label>
+            <input type="range" id="roi-retention" min="1" max="36" step="1" value="12">
+            <span class="hint">Lifetime value <strong data-roi-ltv>$30,000</strong> per client.</span>
+          </div>
+
+          <div class="field">
+            <label for="roi-cost"><span data-roi-costlabel>Pilot cost</span><output data-out="cost">$10,000</output></label>
+            <input type="range" id="roi-cost" min="250" max="50000" step="50" value="10000">
             <span class="hint">Your estimate. The real figure depends on your market and gets set on the call.</span>
           </div>
         </div>
 
-        <!-- Outputs ------------------------------------------------------ -->
+        <!-- ------------------------------ results ------------------------------ -->
         <div class="calc-panel reveal">
-          <dl class="calc-out" aria-live="polite">
-            <div class="calc-row">
-              <dt>New clients per month</dt>
-              <dd data-roi-clients>4</dd>
-            </div>
-            <div class="calc-row">
-              <dt>Revenue per month</dt>
-              <dd data-roi-revenue>$40,000</dd>
-            </div>
-            <div class="calc-row">
-              <dt>Cost per month</dt>
-              <dd data-roi-spend>$6,000</dd>
-            </div>
-            <div class="calc-row">
-              <dt>Net per month</dt>
-              <dd data-roi-net>$34,000</dd>
-            </div>
+          <h3 class="calc-h">Projected results</h3>
+          <p class="calc-note" data-roi-basis>Over the 60-day pilot.</p>
 
-            <div class="calc-hero" data-roi-state>
-              <dt>Return per $1 spent</dt>
-              <dd data-roi-multiple>6.7&times;</dd>
-              <p class="calc-sub" data-roi-breakeven></p>
-            </div>
+          <dl class="calc-out" aria-live="polite">
+            <div class="calc-row"><dt>Emails sent</dt><dd data-roi-emails>210,000</dd></div>
+            <div class="calc-row"><dt>People contacted</dt><dd data-roi-people>105,000</dd></div>
+            <div class="calc-row"><dt>Total replies</dt><dd data-roi-replies>1,575</dd></div>
+            <div class="calc-row"><dt>Interested leads</dt><dd data-roi-interested>394</dd></div>
           </dl>
+
+          <div class="calc-funnel">
+            <div class="fstat"><span>Booked</span><strong data-roi-booked>79</strong></div>
+            <div class="fstat"><span>Showed</span><strong data-roi-showed>63</strong></div>
+            <div class="fstat"><span>Closed</span><strong data-roi-closed>13</strong></div>
+          </div>
+
+          <dl class="calc-out">
+            <div class="calc-row"><dt>Cost per client (CAC)</dt><dd data-roi-cac>$769</dd></div>
+            <div class="calc-row"><dt>Lifetime value added</dt><dd data-roi-added>$390,000</dd></div>
+            <div class="calc-row"><dt>Total cost</dt><dd data-roi-spend>$10,000</dd></div>
+          </dl>
+
+          <div class="calc-hero" data-roi-state>
+            <dt>Return per $1 spent</dt>
+            <dd data-roi-multiple>39.0&times;</dd>
+            <p class="calc-sub" data-roi-verdict></p>
+          </div>
 
           <p class="calc-foot">
             Nothing here is a quote. It's arithmetic on numbers you entered, and it runs in your
@@ -362,14 +406,26 @@
         </div>
       </div>
 
-      <!-- The numbers are the natural handoff into the call. -->
+      <!-- Retainer only: what the same inputs compound to over a year. -->
+      <div class="calc-traj reveal" data-roi-traj hidden>
+        <h3 class="calc-h">12-month trajectory (cumulative)</h3>
+        <div class="traj-scroll">
+          <table class="traj">
+            <caption class="sr-only">Cumulative emails, calls booked, clients closed and revenue by month</caption>
+            <thead>
+              <tr><th scope="col">Month</th><th scope="col">Emails</th><th scope="col">Booked</th><th scope="col">Closed</th><th scope="col">Revenue</th></tr>
+            </thead>
+            <tbody data-roi-tbody></tbody>
+          </table>
+        </div>
+      </div>
+
       <div class="calc-cta reveal">
         <p>Numbers look workable? We'll pressure-test them with you.</p>
         <a class="btn btn-primary" href="#book" data-book>Book a call to discuss your numbers</a>
       </div>
     </div>
   </section>
-
   <!-- ============================ RISK REVERSAL ============================ -->
   <section class="section" id="guarantee">
     <div class="container">
