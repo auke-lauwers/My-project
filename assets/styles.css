@@ -1170,3 +1170,16 @@ img, svg { max-width: 100%; display: block; }
   .calc { align-items: start; }
   .calc > .calc-panel:last-child { position: sticky; top: var(--space-24); }
 }
+
+/* ---------------------------------------------------- ROI calculator page --
+   A secondary page hero: the aurora is the landing page's signature moment,
+   so this one states the job and gets out of the way.
+   -------------------------------------------------------------------------- */
+.hero--page { padding-block: var(--space-48) var(--space-32); }
+.hero--page::before { opacity: 0.55; }
+.hero-title--page { max-width: 20ch; font-size: var(--text-heading-lg); }
+.section--tight { padding-top: 0; }
+
+/* Current page in the nav */
+.nav a[aria-current="page"],
+.mobile-nav a[aria-current="page"] { color: var(--color-pure-white); }

@@ -4,7 +4,8 @@ Static landing page for a done-for-you outbound (cold email lead gen) offer.
 No build step, no dependencies — open `index.html` or serve the folder.
 
 ```
-index.html            # all copy and structure
+index.html            # landing page
+roi-calculator.html   # ROI calculator (its own page)
 assets/styles.css     # design tokens + styles
 assets/main.js        # nav, CTA scroll, VSL + Calendly loaders, ROI calculator, reveals
 assets/fonts/         # self-hosted Inter + Space Grotesk (~85KB)
@@ -29,7 +30,8 @@ python3 -m http.server 8000   # then open http://localhost:8000
 
 ## ROI calculator
 
-Lives at `#roi`, linked from the nav, with two modes:
+Its own page at `roi-calculator.html`, linked from the nav on both pages,
+with two modes:
 
 - **60-Day Pilot** — 42 weekdays of sending, one-off cost, single ROI figure.
 - **Retainer** — 21 weekdays a month, monthly cost, plus a cumulative
@@ -99,7 +101,9 @@ the page makes no third-party font request.
 
 - Every **Book the strategy call** / **Book the call** button targets `#book`
   and smooth-scrolls there. They work without JS too.
-- Nav: **How it works** → `#process`, **FAQ** → `#faq`, **ROI Calculator** → `#roi`.
+- Nav: **How it works** → `#process`, **FAQ** → `#faq`, **ROI Calculator** →
+  `roi-calculator.html`. From the calculator page those links point back at
+  `index.html#…`, and every booking CTA there targets `index.html#book`.
 - FAQ uses native `<details>`, so answers are open to search engines and work
   with JS disabled.
 
