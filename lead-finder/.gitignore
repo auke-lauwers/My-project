@@ -1,0 +1,6 @@
+.env
+*.db
+*.csv
+*.json
+!examples/*
+__pycache__/
