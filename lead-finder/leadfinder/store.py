@@ -11,8 +11,14 @@ import sqlite3
 from datetime import datetime, timezone
 
 FIELDS = ["linkedin_url", "full_name", "first_name", "last_name", "headline",
-          "company", "location", "search_title", "search_location", "query",
-          "provider", "status", "first_seen", "last_seen"]
+          "company", "location", "domain", "email", "email_status", "email_score",
+          "search_title", "search_location", "query", "provider", "status",
+          "first_seen", "last_seen"]
+
+# Added after the first release; created on existing databases by _migrate()
+EMAIL_COLUMNS = {"domain": "TEXT", "domain_source": "TEXT", "email": "TEXT",
+                 "email_status": "TEXT", "email_score": "INTEGER", "email_pattern": "TEXT",
+                 "email_checked": "TEXT"}
 
 SCHEMA = """
 CREATE TABLE IF NOT EXISTS leads (
@@ -27,6 +33,13 @@ CREATE TABLE IF NOT EXISTS leads (
 CREATE TABLE IF NOT EXISTS suppressed (
     slug_hash TEXT PRIMARY KEY,
     added TEXT NOT NULL
+);
+CREATE TABLE IF NOT EXISTS domain_patterns (
+    domain TEXT PRIMARY KEY, pattern TEXT NOT NULL, confirmed INTEGER NOT NULL DEFAULT 1,
+    updated TEXT NOT NULL
+);
+CREATE TABLE IF NOT EXISTS company_domains (
+    company_key TEXT PRIMARY KEY, domain TEXT, source TEXT, updated TEXT NOT NULL
 );
 CREATE TABLE IF NOT EXISTS runs (
     query TEXT NOT NULL, provider TEXT NOT NULL, ran_at TEXT NOT NULL,
@@ -49,6 +62,14 @@ class Store:
         self.db = sqlite3.connect(path)
         self.db.row_factory = sqlite3.Row
         self.db.executescript(SCHEMA)
+        self._migrate()
+
+    def _migrate(self):
+        have = {r[1] for r in self.db.execute("PRAGMA table_info(leads)")}
+        for col, kind in EMAIL_COLUMNS.items():
+            if col not in have:
+                self.db.execute(f"ALTER TABLE leads ADD COLUMN {col} {kind}")
+        self.db.commit()
 
     def close(self):
         self.db.close()
@@ -100,8 +121,14 @@ class Store:
         self.db.commit()
         return "new"
 
-    def leads(self, status: str | None = None, contains: str | None = None):
+    def leads(self, status: str | None = None, contains: str | None = None,
+              email_status: str | None = None, missing_email: bool = False):
         sql, args = "SELECT * FROM leads WHERE 1=1", []
+        if email_status:
+            sql += " AND email_status=?"
+            args.append(email_status)
+        if missing_email:
+            sql += " AND email_status IS NULL"
         if status:
             sql += " AND status=?"
             args.append(status)
@@ -123,6 +150,42 @@ class Store:
         self.db.commit()
         return cur.rowcount > 0
 
+    def lead(self, slug: str):
+        return self.db.execute("SELECT * FROM leads WHERE slug=?", (slug.lower(),)).fetchone()
+
+    def set_email(self, slug: str, found: dict, domain: str | None = None, domain_source: str = ""):
+        self.db.execute("""
+            UPDATE leads SET domain=COALESCE(?, domain), domain_source=COALESCE(NULLIF(?,''), domain_source),
+                email=?, email_status=?, email_score=?, email_pattern=?, email_checked=?
+            WHERE slug=?""",
+            (domain, domain_source, found.get("email"), found.get("status"), found.get("score"),
+             found.get("pattern"), _now(), slug))
+        self.db.commit()
+
+    # Learned per-domain email patterns ("{first}.{last}") from confirmed finds
+    def patterns(self) -> dict[str, str]:
+        return dict(self.db.execute("SELECT domain, pattern FROM domain_patterns").fetchall())
+
+    def learn_pattern(self, domain: str, pattern: str):
+        self.db.execute("""
+            INSERT INTO domain_patterns (domain, pattern, updated) VALUES (?,?,?)
+            ON CONFLICT(domain) DO UPDATE SET
+                confirmed = CASE WHEN pattern=excluded.pattern THEN confirmed+1 ELSE 1 END,
+                pattern = excluded.pattern, updated = excluded.updated""",
+            (domain, pattern, _now()))
+        self.db.commit()
+
+    # company name -> website domain, so each company is looked up once
+    def company_domain(self, company: str):
+        row = self.db.execute("SELECT domain, source FROM company_domains WHERE company_key=?",
+                              (company.strip().lower(),)).fetchone()
+        return (row["domain"], row["source"]) if row else None
+
+    def remember_company_domain(self, company: str, domain: str | None, source: str):
+        self.db.execute("INSERT OR REPLACE INTO company_domains VALUES (?,?,?,?)",
+                        (company.strip().lower(), domain, source, _now()))
+        self.db.commit()
+
     def stats(self) -> dict:
         q = lambda sql: self.db.execute(sql).fetchone()[0]
         return {
@@ -131,6 +194,10 @@ class Store:
                 "SELECT status, COUNT(*) FROM leads GROUP BY status").fetchall()),
             "queries_run": q("SELECT COUNT(*) FROM runs"),
             "suppressed": q("SELECT COUNT(*) FROM suppressed"),
+            "emails": dict(self.db.execute(
+                "SELECT email_status, COUNT(*) FROM leads WHERE email_status IS NOT NULL "
+                "GROUP BY email_status").fetchall()),
+            "patterns_learned": q("SELECT COUNT(*) FROM domain_patterns"),
         }
 
     def export(self, path: str, rows) -> int:

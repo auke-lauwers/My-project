@@ -2,6 +2,9 @@
 
     python -m leadfinder search --title "Head of Marketing" --title CMO \
         --location Amsterdam --location Rotterdam --limit 100
+    python -m leadfinder enrich                      # find emails for saved leads
+    python -m leadfinder find-email "Jane Doe" acme.com
+    python -m leadfinder serve                       # web dashboard
     python -m leadfinder export leads.csv
 """
 
@@ -107,12 +110,106 @@ def cmd_forget(args, store: Store) -> int:
     return 0
 
 
+def _optional_provider(name: str):
+    from .server import optional_provider
+    os.environ.setdefault("LEADFINDER_PROVIDER", name)
+    return optional_provider()
+
+
+def _print_progress(done, total, record, found):
+    name = f"{record.get('first_name', '')} {record.get('last_name', '')}".strip()
+    print(f"[{done}/{total}] {name:<28} {found.get('email') or '-':<40} {found['status']}")
+
+
+def cmd_find_email(args, store: Store) -> int:
+    from .mail import finder
+    from .mail.names import split_full_name
+    from .mail.website import normalize_domain
+    first, last = split_full_name(args.name)
+    domain = normalize_domain(args.domain) if "." in args.domain else None
+    if not domain:
+        cached = store.company_domain(args.domain)
+        domain, source = cached or finder.company_domain(
+            args.domain, country=args.country, provider=_optional_provider(args.provider))
+        if not cached:
+            store.remember_company_domain(args.domain, domain, source)
+        if not domain:
+            print(f"Couldn't find a website for {args.domain!r}; pass the domain instead.")
+            return 1
+        print(f"Company domain: {domain} ({source})")
+    found = finder.find_email(first, last, domain, known_pattern=store.patterns().get(domain))
+    if found["status"] == "valid" and found["pattern"]:
+        store.learn_pattern(domain, found["pattern"])
+    print(f"{found['email'] or 'not found'}  [{found['status']}, {found['score']}%]  {found['reason']}")
+    return 0 if found["email"] else 1
+
+
+def cmd_verify(args, store: Store) -> int:
+    from .mail.verify import verify
+    emails = list(args.emails)
+    if args.file:
+        with open(args.file, encoding="utf-8") as f:
+            emails += [l.strip().split(",")[0] for l in f if "@" in l]
+    for e in emails:
+        r = verify(e)
+        flags = [k for k in ("role", "free") if r.get(k)]
+        print(f"{r['email']:<45} {r['status']:<10} {r['score']:>3}  {r['reason']}"
+              + (f" ({', '.join(flags)})" if flags else ""))
+    return 0
+
+
+def cmd_domain(args, store: Store) -> int:
+    from .mail.website import search_domain
+    r = search_domain(args.domain, max_pages=args.pages)
+    for m in r["emails"]:
+        print(f"{m['email']:<45} {m['type']:<9} {m['sources'][0]}")
+    pattern = store.patterns().get(r["domain"]) or r["pattern"]
+    print(f"\n{len(r['emails'])} addresses from {r['pages_checked']} pages"
+          + (f"; pattern {pattern}@{r['domain']}" if pattern else ""))
+    return 0
+
+
+def cmd_enrich(args, store: Store) -> int:
+    from .mail.enrich import enrich_store
+    counts = enrich_store(store, _optional_provider(args.provider), args.country,
+                          redo=args.redo, workers=args.workers, progress=_print_progress)
+    print("\n" + ", ".join(f"{k}: {v}" for k, v in sorted(counts.items())) if counts
+          else "Every lead already has an email result (use --redo to check again).")
+    return 0
+
+
+def cmd_bulk(args, store: Store) -> int:
+    from .mail.enrich import enrich_csv
+    with open(args.input, encoding="utf-8-sig") as f:
+        text = f.read()
+    try:
+        out, counts = enrich_csv(text, store, _optional_provider(args.provider), args.country,
+                                 workers=args.workers, progress=_print_progress)
+    except ValueError as e:
+        print(f"error: {e}", file=sys.stderr)
+        return 2
+    with open(args.output, "w", encoding="utf-8-sig", newline="") as f:
+        f.write(out)
+    print(f"\nWrote {args.output}: " + ", ".join(f"{k}: {v}" for k, v in sorted(counts.items())))
+    return 0
+
+
+def cmd_serve(args, store: Store) -> int:
+    from .server import serve
+    store.close()
+    serve(args.db, args.host, args.port, args.country)
+    return 0
+
+
 def cmd_stats(args, store: Store) -> int:
     s = store.stats()
     print(f"Leads: {s['leads']}")
     for status, n in sorted(s["by_status"].items()):
         print(f"  {status}: {n}")
     print(f"Queries run: {s['queries_run']}\nSuppressed: {s['suppressed']}")
+    if s["emails"]:
+        print("Emails: " + ", ".join(f"{k} {v}" for k, v in sorted(s["emails"].items())))
+    print(f"Company email patterns learned: {s['patterns_learned']}")
     return 0
 
 
@@ -161,6 +258,46 @@ def main(argv=None) -> int:
     f.set_defaults(fn=cmd_forget)
 
     sub.add_parser("stats", help="database summary").set_defaults(fn=cmd_stats)
+
+    default_provider = os.environ.get("LEADFINDER_PROVIDER", "serper")
+
+    fe = sub.add_parser("find-email", help='find one person\'s email: find-email "Jane Doe" acme.com')
+    fe.add_argument("name", help="full name")
+    fe.add_argument("domain", help="company domain, or company name to look it up")
+    fe.add_argument("--country", default="", help="helps guess the domain from a company name")
+    fe.add_argument("--provider", default=default_provider, choices=sorted(providers.PROVIDERS))
+    fe.set_defaults(fn=cmd_find_email)
+
+    v = sub.add_parser("verify", help="check whether email addresses exist")
+    v.add_argument("emails", nargs="*")
+    v.add_argument("--file", help="file with one address per line (first CSV column)")
+    v.set_defaults(fn=cmd_verify)
+
+    d = sub.add_parser("domain", help="list addresses published on a company's website")
+    d.add_argument("domain")
+    d.add_argument("--pages", type=int, default=12, help="max pages to visit")
+    d.set_defaults(fn=cmd_domain)
+
+    en = sub.add_parser("enrich", help="find emails for saved leads")
+    en.add_argument("--country", default="")
+    en.add_argument("--provider", default=default_provider, choices=sorted(providers.PROVIDERS))
+    en.add_argument("--redo", action="store_true", help="also re-check leads that already have a result")
+    en.add_argument("--workers", type=int, default=4, help="companies checked in parallel")
+    en.set_defaults(fn=cmd_enrich)
+
+    b = sub.add_parser("bulk", help="add emails to a CSV of names + domains/companies")
+    b.add_argument("input")
+    b.add_argument("output")
+    b.add_argument("--country", default="")
+    b.add_argument("--provider", default=default_provider, choices=sorted(providers.PROVIDERS))
+    b.add_argument("--workers", type=int, default=4)
+    b.set_defaults(fn=cmd_bulk)
+
+    sv = sub.add_parser("serve", help="open the web dashboard")
+    sv.add_argument("--host", default="127.0.0.1")
+    sv.add_argument("--port", type=int, default=8080)
+    sv.add_argument("--country", default="")
+    sv.set_defaults(fn=cmd_serve)
 
     args = p.parse_args(argv)
     store = Store(args.db)
