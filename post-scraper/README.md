@@ -13,7 +13,30 @@ scrolls each account's posts page and reads:
   rounded numbers like "12K", so these are used only as a fallback.
 - **post date** decoded from the post ID (LinkedIn IDs contain a timestamp)
 
-## Setup
+## On a Mac (easiest)
+
+1. Download this repository as a ZIP from GitHub (green **Code** button →
+   **Download ZIP**) and unzip it. Move the folder somewhere permanent,
+   like Documents.
+2. Open the `post-scraper` folder and double-click **Start Post
+   Scraper.command**.
+3. The first time, macOS may say it can't verify the developer. Open
+   **System Settings → Privacy & Security**, scroll down and click **Open
+   Anyway** next to the message (or right-click the file → **Open**).
+4. The first start installs what it needs (a few minutes, needs internet).
+   If no Python is found, macOS offers to install its developer tools:
+   click Install, then double-click the file again.
+5. The dashboard opens in your browser. Keep the Terminal window open while
+   you use it; close it to stop.
+
+If double-clicking doesn't work, open Terminal, type `bash ` (with a space),
+drag the file into the window and press Enter.
+
+Your posts, accounts, settings and LinkedIn session are stored in
+`~/Library/Application Support/Post Scraper`, so you can replace the folder
+with a newer download without losing anything.
+
+## Setup (any computer, from a terminal)
 
 ```bash
 cd post-scraper
