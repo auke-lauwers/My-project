@@ -1,0 +1,26 @@
+# One account per line: a profile/company URL, "in/<handle>" or "company/<slug>".
+# Lines starting with # are ignored. A starting list of some of LinkedIn's
+# largest accounts — edit freely; a wrong handle just logs "no posts found".
+
+# People
+in/williamhgates        # Bill Gates
+in/barackobama          # Barack Obama
+in/rbranson             # Richard Branson
+in/satyanadella         # Satya Nadella
+in/melindagates         # Melinda French Gates
+in/simonsinek           # Simon Sinek
+in/adammgrant           # Adam Grant
+in/garyvaynerchuk       # Gary Vaynerchuk
+in/ariannahuffington    # Arianna Huffington
+in/jeffweiner08         # Jeff Weiner
+in/reidhoffman          # Reid Hoffman
+in/justinwelsh          # Justin Welsh
+in/sahilbloom           # Sahil Bloom
+
+# Companies
+company/google
+company/microsoft
+company/amazon
+company/apple
+company/linkedin
+company/openai
