@@ -54,8 +54,13 @@ def rank(posts, days=None, include_reposts=False, min_text=0, sort="score", weig
 
 def top(posts, n=50, per_account=None, **kwargs) -> list:
     """Top n overall, keeping at most per_account posts from any one account."""
+    return pick(rank(posts, **kwargs), n, per_account)
+
+
+def pick(rows, n=50, per_account=None) -> list:
+    """First n of already-ranked rows, at most per_account from any one account."""
     picked, taken = [], {}
-    for r in rank(posts, **kwargs):
+    for r in rows:
         if per_account and taken.get(r["account"], 0) >= per_account:
             continue
         taken[r["account"]] = taken.get(r["account"], 0) + 1

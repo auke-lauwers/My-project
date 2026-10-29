@@ -5,6 +5,7 @@ file always holds the latest engagement numbers.
 """
 
 import csv
+import io
 import json
 import os
 
@@ -50,21 +51,25 @@ def upsert(posts: dict, new) -> tuple:
     return added, updated
 
 
+def render(rows, fmt: str) -> str:
+    """Ranked rows as csv, json or md text."""
+    ranked = [{"rank": i, **r} for i, r in enumerate(rows, 1)]
+    if fmt == "json":
+        return json.dumps(ranked, ensure_ascii=False, indent=2)
+    if fmt == "md":
+        return markdown(ranked)
+    buf = io.StringIO()
+    w = csv.DictWriter(buf, fieldnames=CSV_FIELDS, extrasaction="ignore")
+    w.writeheader()
+    w.writerows(ranked)
+    return buf.getvalue()
+
+
 def export(rows, path: str):
     os.makedirs(os.path.dirname(path) or ".", exist_ok=True)
-    ext = os.path.splitext(path)[1].lower()
-    ranked = [{"rank": i, **r} for i, r in enumerate(rows, 1)]
-    if ext == ".json":
-        with open(path, "w", encoding="utf-8") as f:
-            json.dump(ranked, f, ensure_ascii=False, indent=2)
-    elif ext == ".md":
-        with open(path, "w", encoding="utf-8") as f:
-            f.write(markdown(ranked))
-    else:
-        with open(path, "w", encoding="utf-8", newline="") as f:
-            w = csv.DictWriter(f, fieldnames=CSV_FIELDS, extrasaction="ignore")
-            w.writeheader()
-            w.writerows(ranked)
+    fmt = os.path.splitext(path)[1].lower().lstrip(".")
+    with open(path, "w", encoding="utf-8", newline="") as f:
+        f.write(render(rows, fmt if fmt in ("json", "md") else "csv"))
 
 
 def markdown(rows) -> str:

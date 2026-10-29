@@ -1,0 +1,6 @@
+.env
+.browser-profile/
+data/
+out/
+__pycache__/
+tests/

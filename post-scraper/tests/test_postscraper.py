@@ -24,8 +24,8 @@ FEED_HTML = f"""
       </span>
     </div>
     <div class="update-components-text">
-      <span>Malaria deaths are down by half.</span>
-      <span>Here is what changed.</span>
+      <span dir="ltr">Malaria deaths are down by half.<br><br>
+        Here is   what changed.</span>
     </div>
     <div class="update-components-image"><img src="x.jpg"></div>
     <ul class="social-details-social-counts">
@@ -66,7 +66,7 @@ class ParseTests(unittest.TestCase):
         self.assertEqual([p.post_id for p in posts], [OWN_ID, REPOST_ID])
         own, repost = posts
         self.assertEqual(own.author, "Bill Gates")
-        self.assertEqual(own.text, "Malaria deaths are down by half. Here is what changed.")
+        self.assertEqual(own.text, "Malaria deaths are down by half.\n\nHere is what changed.")
         self.assertEqual((own.reactions, own.comments, own.reposts), (12345, 678, 1200))
         self.assertEqual(own.media, "image")
         self.assertFalse(own.is_repost)

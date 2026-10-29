@@ -14,6 +14,11 @@ import time
 from .parse import counts_from_voyager, merge_counts, parse_feed_html
 
 PROFILE_DIR = ".browser-profile"
+SIGNED_IN_MARKER = os.path.join(PROFILE_DIR, ".signed-in")
+
+
+class SignedOut(RuntimeError):
+    """LinkedIn redirected to a login, authwall or security-check page."""
 
 
 def normalize_account(value: str) -> tuple:
@@ -73,6 +78,8 @@ def login():
         print("Sign in in the browser window. Waiting until your feed loads (5 min max)...")
         try:
             page.wait_for_url(re.compile(r"linkedin\.com/(feed|in/)"), timeout=300_000)
+            with open(SIGNED_IN_MARKER, "w") as f:
+                f.write("1")
             print(f"Signed in. Session saved in {PROFILE_DIR}/")
         finally:
             ctx.close()
@@ -106,28 +113,35 @@ class Scraper:
         except Exception:
             pass  # not JSON, or the body is gone; HTML counts are the fallback
 
-    def pause(self):
-        time.sleep(random.uniform(*self.delay))
+    def pause(self, stop=None):
+        """Wait between accounts; returns early if the stop event is set."""
+        seconds = random.uniform(*self.delay)
+        if stop is not None:
+            stop.wait(seconds)
+        else:
+            time.sleep(seconds)
 
     def scrape(self, account_value: str, max_posts=30) -> list:
         account, url = normalize_account(account_value)
         self._counts = {}
         self.page.goto(url, wait_until="domcontentloaded", timeout=60_000)
         if _signed_out(self.page):
-            raise SystemExit(
-                "LinkedIn wants you to sign in. Run `python -m postscraper login` "
-                "(or set LI_AT in .env) and try again."
+            raise SignedOut(
+                "LinkedIn wants you to sign in (or shows a security check). "
+                "Sign in again, or paste a fresh li_at cookie, and retry."
             )
         try:
             self.page.wait_for_selector("[data-urn*='activity'], [data-id*='activity']", timeout=20_000)
         except Exception:
             return []  # no posts, wrong handle, or the layout changed
 
-        posts = []
+        posts, stalled = [], 0
         for _ in range(self.scrolls):
             self._expand_see_more()
+            before = len(posts)
             posts = parse_feed_html(self.page.content(), account)
-            if len(posts) >= max_posts:
+            stalled = stalled + 1 if len(posts) == before else 0
+            if len(posts) >= max_posts or stalled >= 2:  # enough, or nothing more loads
                 break
             self.page.mouse.wheel(0, random.randint(2500, 4000))
             time.sleep(random.uniform(1.5, 3.5))

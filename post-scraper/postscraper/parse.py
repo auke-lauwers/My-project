@@ -77,6 +77,18 @@ def _text(node) -> str:
     return re.sub(r"\s+", " ", node.get_text(" ", strip=True)).strip() if node else ""
 
 
+def _multiline_text(node) -> str:
+    """Post text with its line breaks kept; LinkedIn renders them as <br>."""
+    if not node:
+        return ""
+    for br in node.find_all("br"):
+        br.replace_with("\n")
+    text = node.get_text("")
+    text = re.sub(r"[ \t\u00a0]+", " ", text)
+    text = re.sub(r" *\n *", "\n", text)
+    return re.sub(r"\n{3,}", "\n\n", text).strip()
+
+
 def _first(container, selectors):
     for sel in selectors:
         node = container.select_one(sel)
@@ -139,7 +151,7 @@ def parse_feed_html(html: str, account: str) -> list:
             ".update-components-text",
             ".feed-shared-inline-show-more-text",
         ])
-        text = _text(body).removesuffix("…more").removesuffix("... more").strip()
+        text = _multiline_text(body).removesuffix("…more").removesuffix("... more").strip()
 
         reactions_node = _first(container, [
             ".social-details-social-counts__reactions-count",

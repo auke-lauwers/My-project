@@ -1,0 +1,474 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Post Scraper</title>
+<link rel="icon" href="data:,">
+<style>
+  :root {
+    --bg: #0b0b0b; --card: #121212; --raised: #1a1a1a; --line: #2a2a2a; --text: #f2f2f2; --muted: #9a9a9a;
+    --accent: #a881fe; --accent-ink: #120a24;
+    --ok: #3ecf8e; --warn: #f5b84a; --bad: #f26d6d;
+    --r-card: 16px; --r-btn: 12px; --r-input: 8px;
+    font-family: Inter, system-ui, -apple-system, "Segoe UI", sans-serif;
+  }
+  * { box-sizing: border-box; }
+  [hidden] { display: none !important; }
+  body { margin: 0; background: var(--bg); color: var(--text); font-size: 15px; line-height: 1.5; }
+  header { display: flex; align-items: center; gap: 24px; padding: 16px 24px; border-bottom: 1px solid var(--line); flex-wrap: wrap; position: sticky; top: 0; background: rgba(11,11,11,.92); backdrop-filter: blur(8px); z-index: 5; }
+  header h1 { font-size: 17px; margin: 0; letter-spacing: -.01em; }
+  header h1 span { color: var(--accent); }
+  nav { display: flex; gap: 4px; flex-wrap: wrap; }
+  nav button { background: none; border: 0; color: var(--muted); padding: 8px 14px; border-radius: 9999px; font: inherit; cursor: pointer; min-height: 36px; }
+  nav button[aria-selected="true"] { color: var(--text); background: #1d1d1d; }
+  nav button:hover { color: var(--text); }
+  .stats { margin-left: auto; color: var(--muted); font-size: 13px; display: flex; gap: 14px; align-items: center; flex-wrap: wrap; }
+  .dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: var(--muted); margin-right: 6px; vertical-align: 1px; }
+  .dot.ok { background: var(--ok); } .dot.warn { background: var(--warn); } .dot.bad { background: var(--bad); }
+  .dot.live { background: var(--accent); animation: pulse 1.2s infinite; }
+  @keyframes pulse { 50% { opacity: .3; } }
+  main { max-width: 1040px; margin: 0 auto; padding: 32px 16px 64px; }
+  section[hidden] { display: none; }
+  h2 { font-size: 24px; margin: 0 0 4px; letter-spacing: -.02em; }
+  h3 { font-size: 16px; margin: 0 0 12px; }
+  .lede { color: var(--muted); margin: 0 0 24px; }
+  .card { border: 1px solid var(--line); border-radius: var(--r-card); padding: 20px; background: var(--card); margin-bottom: 16px; }
+  .grid { display: grid; gap: 12px; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); align-items: end; }
+  label { display: grid; gap: 6px; font-size: 13px; color: var(--muted); }
+  label.check { display: flex; align-items: center; gap: 8px; min-height: 42px; color: var(--text); }
+  label.check input { width: 18px; height: 18px; min-height: 0; accent-color: var(--accent); }
+  input, textarea, select { background: var(--bg); color: var(--text); border: 1px solid var(--line); border-radius: var(--r-input); padding: 10px 12px; font: inherit; width: 100%; min-height: 42px; }
+  input:focus, textarea:focus, select:focus, button:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+  textarea { min-height: 360px; resize: vertical; font-family: ui-monospace, Menlo, monospace; font-size: 13px; line-height: 1.6; }
+  .btn { background: var(--accent); color: var(--accent-ink); border: 0; border-radius: var(--r-btn); padding: 10px 18px; font: inherit; font-weight: 600; cursor: pointer; min-height: 42px; white-space: nowrap; text-decoration: none; display: inline-flex; align-items: center; justify-content: center; }
+  .btn[disabled] { opacity: .45; cursor: not-allowed; }
+  .btn.ghost { background: none; color: var(--text); border: 1px solid var(--line); font-weight: 500; }
+  .btn.danger { background: none; color: var(--bad); border: 1px solid var(--bad); }
+  .btn.small { min-height: 32px; padding: 4px 12px; font-size: 13px; }
+  .row { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
+  .muted { color: var(--muted); font-size: 13px; }
+  .err { color: var(--bad); font-size: 14px; }
+  .okmsg { color: var(--ok); font-size: 14px; }
+  .note { border-left: 3px solid var(--warn); padding: 8px 14px; color: var(--muted); font-size: 13px; margin: 0 0 16px; background: #15130d; border-radius: 0 8px 8px 0; }
+  .progress { height: 6px; background: #1d1d1d; border-radius: 9999px; overflow: hidden; margin: 16px 0 8px; }
+  .progress div { height: 100%; width: 0; background: var(--accent); transition: width .4s; }
+  .log { background: var(--bg); border: 1px solid var(--line); border-radius: var(--r-input); padding: 12px; font-family: ui-monospace, Menlo, monospace; font-size: 12.5px; line-height: 1.7; max-height: 420px; overflow: auto; white-space: pre-wrap; color: #cfcfcf; margin: 0; }
+  .log:empty::before { content: "Nothing has run yet."; color: var(--muted); }
+
+  /* top posts */
+  .filters { display: grid; gap: 12px; grid-template-columns: 2fr repeat(4, minmax(120px, 1fr)); align-items: end; margin-bottom: 12px; }
+  .filters-2 { display: flex; gap: 16px; align-items: center; flex-wrap: wrap; margin-bottom: 20px; }
+  .filters-2 .exports { margin-left: auto; display: flex; gap: 8px; }
+  .post { border: 1px solid var(--line); border-radius: var(--r-card); background: var(--card); padding: 18px 20px; margin-bottom: 12px; display: grid; grid-template-columns: 44px 1fr; gap: 4px 16px; }
+  .post .rank { font-size: 22px; font-weight: 700; color: var(--muted); font-variant-numeric: tabular-nums; grid-row: span 3; }
+  .post .who { display: flex; gap: 10px; align-items: baseline; flex-wrap: wrap; }
+  .post .who strong { font-size: 15px; }
+  .post .text { white-space: pre-wrap; color: #dedede; margin: 8px 0 4px; overflow-wrap: anywhere; }
+  .post .text.clamp { display: -webkit-box; -webkit-line-clamp: 5; -webkit-box-orient: vertical; overflow: hidden; }
+  .metrics { display: flex; gap: 18px; flex-wrap: wrap; align-items: center; font-size: 13px; color: var(--muted); margin-top: 8px; }
+  .metrics b { color: var(--text); font-variant-numeric: tabular-nums; }
+  .pill { font-size: 12px; font-weight: 600; padding: 2px 10px; border-radius: 9999px; background: #1f1830; color: var(--accent); white-space: nowrap; }
+  .pill.hot { background: #2b1d0b; color: var(--warn); }
+  .tag { font-size: 12px; color: var(--muted); border: 1px solid var(--line); padding: 1px 8px; border-radius: 9999px; }
+  .post .actions { display: flex; gap: 8px; margin-left: auto; }
+  .linkish { background: none; border: 0; color: var(--muted); font: inherit; font-size: 13px; cursor: pointer; padding: 0; text-decoration: underline; text-underline-offset: 3px; }
+  .linkish:hover { color: var(--text); }
+  .empty { text-align: center; padding: 56px 16px; color: var(--muted); border: 1px dashed var(--line); border-radius: var(--r-card); }
+  .empty .btn { margin-top: 16px; }
+
+  .session-state { display: flex; gap: 12px; align-items: center; font-size: 15px; margin-bottom: 12px; }
+  ol.steps { margin: 0 0 16px; padding-left: 20px; color: var(--muted); font-size: 14px; }
+  ol.steps li { margin-bottom: 4px; }
+  code { font-family: ui-monospace, Menlo, monospace; font-size: 13px; background: #1d1d1d; padding: 1px 6px; border-radius: 4px; color: var(--text); }
+
+  @media (max-width: 760px) {
+    header { padding: 12px 16px; gap: 12px; }
+    .stats { margin-left: 0; width: 100%; }
+    .filters { grid-template-columns: 1fr 1fr; }
+    .filters label:first-child { grid-column: 1 / -1; }
+    .filters-2 .exports { margin-left: 0; }
+    .post { grid-template-columns: 1fr; }
+    .post .rank { grid-row: auto; font-size: 16px; }
+  }
+</style>
+</head>
+<body>
+<header>
+  <h1>Post<span>Scraper</span></h1>
+  <nav role="tablist">
+    <button role="tab" data-tab="posts" aria-selected="true">Top posts</button>
+    <button role="tab" data-tab="run">Run</button>
+    <button role="tab" data-tab="accounts">Accounts</button>
+    <button role="tab" data-tab="session">LinkedIn session</button>
+  </nav>
+  <div class="stats" id="stats"></div>
+</header>
+
+<main>
+  <!-- TOP POSTS -->
+  <section id="posts">
+    <h2>Top posts</h2>
+    <p class="lede">The best-performing posts from your accounts. <b>Score</b> = reactions + 2× comments + 3× reposts. <b>×median</b> = how far a post beat that account's typical post.</p>
+    <div class="filters">
+      <label>Search text or author <input id="f-q" type="search" placeholder="e.g. hiring, AI, failure"></label>
+      <label>Account <select id="f-account"><option value="">All accounts</option></select></label>
+      <label>Posted in <select id="f-days">
+        <option value="7">Last 7 days</option><option value="30">Last 30 days</option>
+        <option value="90" selected>Last 90 days</option><option value="365">Last year</option><option value="">Any time</option>
+      </select></label>
+      <label>Rank by <select id="f-sort">
+        <option value="score">Most engagement</option><option value="vs_median">Biggest breakouts (×median)</option>
+      </select></label>
+      <label>Per account <select id="f-per">
+        <option value="">No limit</option><option value="1">1</option><option value="3" selected>3</option><option value="5">5</option>
+      </select></label>
+    </div>
+    <div class="filters-2">
+      <label class="check"><input type="checkbox" id="f-reposts"> Include reposts</label>
+      <span class="muted" id="result-count"></span>
+      <div class="exports">
+        <a class="btn ghost small" data-export="csv">CSV</a>
+        <a class="btn ghost small" data-export="md">Markdown</a>
+        <a class="btn ghost small" data-export="json">JSON</a>
+      </div>
+    </div>
+    <div id="post-list"></div>
+  </section>
+
+  <!-- RUN -->
+  <section id="run" hidden>
+    <h2>Run the scraper</h2>
+    <p class="lede">Visits every account in your list, collects recent posts and updates the numbers of posts you already have.</p>
+    <div class="card">
+      <div class="row">
+        <button class="btn" id="run-btn">Start run</button>
+        <button class="btn danger" id="stop-btn" hidden>Stop</button>
+        <span id="run-msg" class="muted"></span>
+      </div>
+      <div class="progress" id="progress" hidden><div></div></div>
+      <div class="muted" id="progress-text"></div>
+    </div>
+    <div class="card">
+      <h3>Log</h3>
+      <pre class="log" id="log" aria-live="polite"></pre>
+    </div>
+    <div class="card">
+      <h3>Settings</h3>
+      <form id="settings-form">
+        <div class="grid">
+          <label>Posts per account <input type="number" name="max_posts" min="1" max="200"></label>
+          <label>Scrolls per account <input type="number" name="scrolls" min="1" max="50"></label>
+          <label>Min wait (seconds) <input type="number" name="min_delay" min="3" step="1"></label>
+          <label>Max wait (seconds) <input type="number" name="max_delay" min="3" step="1"></label>
+          <label>Run automatically <select name="schedule_hours">
+            <option value="0">Off</option><option value="24">Every day</option>
+            <option value="72">Every 3 days</option><option value="168">Every week</option>
+          </select></label>
+        </div>
+        <div class="row" style="margin-top:12px">
+          <label class="check"><input type="checkbox" name="show_browser"> Show the browser window while scraping</label>
+          <button class="btn ghost" type="submit">Save settings</button>
+          <span id="settings-msg" class="muted"></span>
+        </div>
+      </form>
+      <p class="muted" style="margin:12px 0 0">Waits are between accounts. Automatic runs happen while this dashboard is running. Keep it slow: about 20–50 accounts a day, and leave the waits at 8 s or more.</p>
+    </div>
+  </section>
+
+  <!-- ACCOUNTS -->
+  <section id="accounts" hidden>
+    <h2>Accounts</h2>
+    <p class="lede">One per line: a profile or company URL, <code>in/handle</code> or <code>company/slug</code>. Anything after <code>#</code> is a comment.</p>
+    <div class="card">
+      <form id="accounts-form">
+        <label for="accounts-text" class="muted" style="margin-bottom:8px">Accounts to scrape</label>
+        <textarea id="accounts-text" spellcheck="false"></textarea>
+        <div class="row" style="margin-top:12px">
+          <button class="btn" type="submit">Save accounts</button>
+          <span id="accounts-msg" class="muted"></span>
+        </div>
+      </form>
+    </div>
+  </section>
+
+  <!-- SESSION -->
+  <section id="session" hidden>
+    <h2>LinkedIn session</h2>
+    <p class="lede">The scraper reads LinkedIn while signed in as you. Use one of the two options below.</p>
+    <div class="card">
+      <div class="session-state" id="session-state"></div>
+      <div class="note">LinkedIn doesn't allow automated access and can restrict accounts it flags. Keep runs small and consider a secondary account.</div>
+    </div>
+    <div class="card">
+      <h3>Option 1: Sign in in a browser window</h3>
+      <p class="muted">Opens Chromium on this computer. Sign in normally; the session is kept for later runs.</p>
+      <div class="row">
+        <button class="btn" id="login-btn">Open sign-in window</button>
+        <span id="login-msg" class="muted"></span>
+      </div>
+    </div>
+    <div class="card">
+      <h3>Option 2: Paste your li_at cookie</h3>
+      <ol class="steps">
+        <li>Open linkedin.com in your normal browser while signed in.</li>
+        <li>Open DevTools (F12) → <b>Application</b> → <b>Cookies</b> → <code>https://www.linkedin.com</code>.</li>
+        <li>Copy the value of <code>li_at</code> and paste it here.</li>
+      </ol>
+      <form id="cookie-form" class="row">
+        <input id="cookie-input" type="password" placeholder="AQEDA…" autocomplete="off" style="flex:1;min-width:220px">
+        <button class="btn" type="submit">Save cookie</button>
+        <button class="btn ghost" type="button" id="cookie-clear">Remove</button>
+      </form>
+      <p class="muted" id="cookie-msg" style="margin:8px 0 0">Stored only in <code>.env</code> on this machine. It works like your password, so don't share it.</p>
+    </div>
+  </section>
+</main>
+
+<script>
+const $ = (s, el = document) => el.querySelector(s);
+const $$ = (s, el = document) => [...el.querySelectorAll(s)];
+const fmt = n => Number(n || 0).toLocaleString();
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const safeUrl = u => /^https:\/\/www\.linkedin\.com\//.test(u || "") ? u : "#";
+const ago = iso => {
+  if (!iso) return "";
+  const d = (Date.now() - new Date(iso)) / 864e5;
+  if (d < 1) return "today";
+  if (d < 2) return "yesterday";
+  if (d < 30) return `${Math.floor(d)} days ago`;
+  return new Date(iso).toLocaleDateString(undefined, {day: "numeric", month: "short", year: "numeric"});
+};
+
+async function api(path, body) {
+  const opts = body === undefined ? {} : {method: "POST", headers: {"Content-Type": "application/json"}, body: JSON.stringify(body)};
+  const res = await fetch(path, opts);
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok && !("ok" in data)) throw new Error(data.error || res.statusText);
+  return data;
+}
+function say(el, text, kind = "muted") { el.className = kind; el.textContent = text; }
+
+// ---- tabs
+function show(tab) {
+  $$("nav button").forEach(b => b.setAttribute("aria-selected", b.dataset.tab === tab));
+  $$("main > section").forEach(s => s.hidden = s.id !== tab);
+  try { localStorage.setItem("ps-tab", tab); } catch {}
+  if (tab === "posts") loadPosts();
+  if (tab === "accounts") loadAccounts();
+}
+$$("nav button").forEach(b => b.onclick = () => show(b.dataset.tab));
+
+// ---- status (header, session, run state)
+let lastStatus = null, wasRunning = false;
+async function refreshStatus() {
+  let s;
+  try { s = await api("/api/status"); } catch { return; }
+  lastStatus = s;
+  const sess = s.session, job = s.job;
+  let dot = "warn", label = "Not signed in";
+  if (sess.status === "signed_out") { dot = "bad"; label = "Signed out — sign in again"; }
+  else if (sess.status === "ok") { dot = "ok"; label = "Signed in"; }
+  else if (sess.cookie_set || sess.profile_saved) { dot = "ok"; label = sess.cookie_set ? "Cookie saved" : "Browser session saved"; }
+
+  const runBit = job.running
+    ? `<span><span class="dot live"></span>${job.kind === "login" ? "Signing in" : `Running ${job.done}/${job.total}`}</span>`
+    : s.next_run_at ? `<span>Next run ${new Date(s.next_run_at).toLocaleString(undefined, {weekday: "short", hour: "2-digit", minute: "2-digit"})}</span>` : "";
+  $("#stats").innerHTML = `${runBit}<span>${fmt(s.posts)} posts · ${s.scraped_accounts}/${s.accounts} accounts</span><span><span class="dot ${dot}"></span>${esc(label)}</span>`;
+
+  $("#session-state").innerHTML = `<span class="dot ${dot}"></span><span>${esc(label)}</span>`
+    + (sess.message ? `<span class="err">${esc(sess.message)}</span>` : "");
+  $("#login-btn").disabled = !sess.can_open_browser || job.running;
+  if (!sess.can_open_browser) say($("#login-msg"), "No screen on this machine (server). Use option 2.");
+  $("#cookie-clear").hidden = !sess.cookie_set;
+
+  $("#run-btn").disabled = job.running;
+  $("#stop-btn").hidden = !(job.running && job.kind === "scrape");
+  $("#progress").hidden = !job.total;
+  $("#progress div").style.width = job.total ? `${100 * job.done / job.total}%` : "0";
+  if (job.running && job.kind === "scrape") $("#progress-text").textContent = `${job.done} of ${job.total} accounts done`;
+  else if (job.finished_at && job.kind === "scrape") {
+    const sm = job.summary;
+    $("#progress-text").textContent = job.error ? `Stopped with an error: ${job.error}`
+      : sm ? `Finished ${new Date(job.finished_at).toLocaleTimeString()}: ${sm.added} new posts, ${sm.updated} updated${sm.errors ? `, ${sm.errors} errors` : ""}${sm.stopped ? " (stopped early)" : ""}.` : "";
+  }
+  if (job.running || wasRunning) refreshLog();
+  if (wasRunning && !job.running && !$("#posts").hidden) loadPosts();
+  wasRunning = job.running;
+  if (!settingsLoaded) fillSettings(s.settings);
+}
+async function refreshLog() {
+  const job = await api("/api/job");
+  const log = $("#log");
+  const atBottom = log.scrollHeight - log.scrollTop - log.clientHeight < 40;
+  log.textContent = job.log.join("\n");
+  if (atBottom) log.scrollTop = log.scrollHeight;
+}
+setInterval(refreshStatus, 2500);
+
+// ---- run
+$("#run-btn").onclick = async () => {
+  if (lastStatus && !lastStatus.session.cookie_set && !lastStatus.session.profile_saved) {
+    if (!confirm("You haven't signed in to LinkedIn yet. Run anyway?")) return show("session");
+  }
+  const r = await api("/api/run", {});
+  say($("#run-msg"), r.message, r.ok ? "muted" : "err");
+  refreshStatus();
+};
+$("#stop-btn").onclick = async () => { await api("/api/stop", {}); say($("#run-msg"), "Stopping after the current account…"); };
+
+let settingsLoaded = false;
+function fillSettings(s) {
+  const f = $("#settings-form");
+  for (const [k, v] of Object.entries(s)) {
+    const el = f.elements[k];
+    if (!el) continue;
+    if (el.type === "checkbox") el.checked = !!v; else el.value = v;
+  }
+  settingsLoaded = true;
+}
+$("#settings-form").onsubmit = async e => {
+  e.preventDefault();
+  const f = e.target, body = {};
+  for (const el of f.elements) if (el.name) body[el.name] = el.type === "checkbox" ? el.checked : el.value;
+  try {
+    const r = await api("/api/settings", body);
+    fillSettings(r.settings);
+    say($("#settings-msg"), "Saved.", "okmsg");
+    refreshStatus();
+  } catch (err) { say($("#settings-msg"), err.message, "err"); }
+};
+
+// ---- accounts
+async function loadAccounts() {
+  const r = await api("/api/accounts");
+  if (document.activeElement !== $("#accounts-text")) $("#accounts-text").value = r.text;
+}
+$("#accounts-form").onsubmit = async e => {
+  e.preventDefault();
+  try {
+    const r = await api("/api/accounts", {text: $("#accounts-text").value});
+    say($("#accounts-msg"), `Saved ${r.count} accounts.`, "okmsg");
+    refreshStatus();
+  } catch (err) { say($("#accounts-msg"), err.message, "err"); }
+};
+
+// ---- session
+$("#login-btn").onclick = async () => {
+  const r = await api("/api/login", {});
+  say($("#login-msg"), r.ok ? "A browser window opened. Sign in there." : r.message, r.ok ? "muted" : "err");
+  refreshStatus();
+};
+$("#cookie-form").onsubmit = async e => {
+  e.preventDefault();
+  try {
+    await api("/api/cookie", {li_at: $("#cookie-input").value});
+    $("#cookie-input").value = "";
+    say($("#cookie-msg"), "Cookie saved.", "okmsg");
+    refreshStatus();
+  } catch (err) { say($("#cookie-msg"), err.message, "err"); }
+};
+$("#cookie-clear").onclick = async () => {
+  await api("/api/cookie", {li_at: ""});
+  say($("#cookie-msg"), "Cookie removed.");
+  refreshStatus();
+};
+
+// ---- posts
+function filterQuery() {
+  const p = new URLSearchParams({
+    q: $("#f-q").value, account: $("#f-account").value, days: $("#f-days").value,
+    sort: $("#f-sort").value, per_account: $("#f-per").value,
+    include_reposts: $("#f-reposts").checked ? "1" : "", limit: "100",
+  });
+  for (const [k, v] of [...p]) if (!v) p.delete(k);
+  return p;
+}
+function saveFilters() {
+  try { localStorage.setItem("ps-filters", JSON.stringify(Object.fromEntries(filterQuery()))); } catch {}
+}
+function restoreFilters() {
+  let f = {};
+  try { f = JSON.parse(localStorage.getItem("ps-filters") || "{}"); } catch {}
+  if (!f.sort) return null;  // nothing saved yet: keep the defaults
+  $("#f-q").value = f.q ?? "";
+  $("#f-days").value = f.days ?? "";
+  $("#f-sort").value = f.sort;
+  $("#f-per").value = f.per_account ?? "";
+  $("#f-reposts").checked = f.include_reposts === "1";
+  return f.account;
+}
+
+let pendingAccount = restoreFilters();
+async function loadPosts() {
+  const q = filterQuery();
+  const r = await api("/api/posts?" + q);
+  const sel = $("#f-account"), current = pendingAccount ?? sel.value;
+  sel.innerHTML = `<option value="">All accounts</option>` + r.accounts.map(a => `<option>${esc(a)}</option>`).join("");
+  sel.value = r.accounts.includes(current) ? current : "";
+  if (pendingAccount && sel.value === pendingAccount) { pendingAccount = null; if (!q.get("account")) return loadPosts(); }
+  pendingAccount = null;
+  $$("[data-export]").forEach(a => a.href = `/api/export?format=${a.dataset.export}&` + q);
+  $("#result-count").textContent = r.rows.length ? `${r.rows.length} posts` : "";
+  renderPosts(r.rows);
+}
+function renderPosts(rows) {
+  const list = $("#post-list");
+  if (!rows.length) {
+    const none = !lastStatus || !lastStatus.posts;
+    list.innerHTML = `<div class="empty">${none
+      ? "No posts yet. Add accounts, sign in, then start a run.<br><button class='btn' onclick=\"show('run')\">Go to Run</button>"
+      : "No posts match these filters. Try a longer time range."}</div>`;
+    return;
+  }
+  list.innerHTML = rows.map((r, i) => `
+    <article class="post">
+      <div class="rank">${i + 1}</div>
+      <div class="who">
+        <strong>${esc(r.author || r.account)}</strong>
+        <span class="muted">${esc(r.account)} · ${esc(ago(r.posted_at))}</span>
+        ${r.media ? `<span class="tag">${esc(r.media)}</span>` : ""}
+        ${r.is_repost ? `<span class="tag">repost</span>` : ""}
+      </div>
+      <div class="text clamp" data-i="${i}">${esc(r.text || "(no text)")}</div>
+      <div class="metrics">
+        <span><b>${fmt(r.reactions)}</b> reactions</span>
+        <span><b>${fmt(r.comments)}</b> comments</span>
+        <span><b>${fmt(r.reposts)}</b> reposts</span>
+        <span class="pill">${fmt(r.score)} pts</span>
+        <span class="pill ${r.vs_median >= 3 ? "hot" : ""}" title="Compared with this account's median post">${r.vs_median}× median</span>
+        <span class="actions">
+          ${(r.text || "").length > 300 ? `<button class="linkish" data-more="${i}">Show more</button>` : ""}
+          <button class="linkish" data-copy="${i}">Copy text</button>
+          <a class="linkish" href="${esc(safeUrl(r.url))}" target="_blank" rel="noopener noreferrer">Open on LinkedIn ↗</a>
+        </span>
+      </div>
+    </article>`).join("");
+  list.onclick = e => {
+    const more = e.target.dataset.more, copy = e.target.dataset.copy;
+    if (more !== undefined) {
+      const t = $(`.text[data-i="${more}"]`, list);
+      t.classList.toggle("clamp");
+      e.target.textContent = t.classList.contains("clamp") ? "Show more" : "Show less";
+    }
+    if (copy !== undefined) {
+      navigator.clipboard.writeText(rows[copy].text || "").then(() => {
+        e.target.textContent = "Copied";
+        setTimeout(() => e.target.textContent = "Copy text", 1500);
+      });
+    }
+  };
+}
+let debounce;
+$$("#posts select, #posts input").forEach(el => el.addEventListener(el.type === "search" ? "input" : "change", () => {
+  clearTimeout(debounce);
+  debounce = setTimeout(() => { saveFilters(); loadPosts(); }, el.type === "search" ? 250 : 0);
+}));
+
+// ---- boot
+let startTab = "posts";
+try { startTab = localStorage.getItem("ps-tab") || "posts"; } catch {}
+refreshStatus().then(() => { show(startTab); refreshLog(); });
+</script>
+</body>
+</html>

@@ -19,13 +19,57 @@ scrolls each account's posts page and reads:
 cd post-scraper
 pip install -r requirements.txt
 python -m playwright install chromium
-python -m postscraper login     # sign in once; the session stays in .browser-profile/
+python -m postscraper serve     # dashboard at http://127.0.0.1:8080
 ```
 
-You can skip `login` and paste your `li_at` cookie into `.env` instead (see
+Sign in from the dashboard's **LinkedIn session** tab, or on the command line
+with `python -m postscraper login`. The session is kept in `.browser-profile/`.
+
+Or paste your `li_at` cookie on that tab, or into `.env` (see
 `.env.example`). To use a Chrome you already have, set `CHROMIUM_PATH`.
 
-## Use
+## Dashboard
+
+```bash
+python -m postscraper serve     # then open http://127.0.0.1:8080
+```
+
+Everything runs from the browser:
+
+- **Top posts**: the ranked posts as cards, with filters for search, account,
+  time range, ranking (most engagement or biggest breakouts) and posts per
+  account. Copy a post's text, open it on LinkedIn, or export the current
+  view as CSV, Markdown or JSON.
+- **Run**: start or stop a scrape and follow the live log. Settings for
+  posts per account and wait times, and an optional automatic run every
+  day, 3 days or week (it runs while the dashboard is running).
+- **Accounts**: edit the account list.
+- **LinkedIn session**: open the sign-in window, or paste your `li_at`
+  cookie. Shows when the session has expired.
+
+### On a server
+
+The Dockerfile runs the dashboard with Chromium included. A server has no
+screen for the sign-in window, so use the cookie option.
+
+```bash
+docker build -t post-scraper .
+```
+
+```bash
+docker run -d -p 8080:8080 -v post-scraper-data:/data -e POSTSCRAPER_PASSWORD=change-me --name post-scraper post-scraper
+```
+
+Set `POSTSCRAPER_PASSWORD` whenever the dashboard can be reached from
+another machine. It turns on a browser password prompt (any username).
+Put it behind HTTPS (e.g. Caddy or a Cloudflare Tunnel) before using it
+over the internet. Posts, settings, accounts and the cookie are kept in the
+`/data` volume.
+
+LinkedIn is quicker to flag sign-ins from data-center IP addresses than from
+your home connection. Running it on your own computer is the safer choice.
+
+## Command line
 
 ```bash
 python -m postscraper run                       # scrape accounts.txt, rank, write out/top.csv + out/top.md
@@ -90,6 +134,9 @@ python -m unittest
 
 ```
 accounts.txt              # accounts to scrape
+postscraper/server.py     # dashboard API, background runs, schedule
+postscraper/static/       # dashboard page
+postscraper/runner.py     # one scrape run, shared by CLI and dashboard
 postscraper/browser.py    # Playwright: login, scrolling, API response capture
 postscraper/parse.py      # HTML + API JSON -> Post records
 postscraper/rank.py       # scoring and ranking

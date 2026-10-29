@@ -4,6 +4,7 @@
     python -m postscraper scrape --accounts accounts.txt --max-posts 30
     python -m postscraper top --days 90 --limit 50 --out out/top.md
     python -m postscraper run            # scrape, then top
+    python -m postscraper serve          # web dashboard on http://127.0.0.1:8080
 """
 
 import argparse
@@ -45,7 +46,8 @@ def cmd_login(args) -> int:
 
 
 def cmd_scrape(args) -> int:
-    from .browser import Scraper
+    from .browser import SignedOut
+    from .runner import run_scrape
 
     file = args.accounts or (None if args.account else "accounts.txt")
     accounts = read_accounts(args.account, file)
@@ -55,36 +57,18 @@ def cmd_scrape(args) -> int:
     if args.shuffle:
         random.shuffle(accounts)
 
-    posts = store.load(args.db)
-    print(f"Scraping {len(accounts)} accounts, up to {args.max_posts} posts each\n")
-    with Scraper(
-        headless=not args.show_browser,
-        li_at=os.environ.get("LI_AT", ""),
-        scrolls=args.scrolls,
-        delay=(args.min_delay, args.max_delay),
-    ) as scraper:
-        for i, account in enumerate(accounts, 1):
-            try:
-                found = scraper.scrape(account, args.max_posts)
-            except ValueError as e:
-                print(f"[{i}/{len(accounts)}] {account}: skipped ({e})")
-                continue
-            except Exception as e:  # one bad page should not end the run
-                print(f"[{i}/{len(accounts)}] {account}: error: {e}")
-                found = []
-            if found:
-                added, updated = store.upsert(posts, found)
-                store.save(args.db, posts)  # after every account, so a crash loses nothing
-                best = max(found, key=lambda p: rank.score(p.to_dict()))
-                print(
-                    f"[{i}/{len(accounts)}] {account}: {len(found)} posts "
-                    f"({added} new, {updated} updated), best {rank.score(best.to_dict()):,} pts"
-                )
-            else:
-                print(f"[{i}/{len(accounts)}] {account}: no posts found")
-            if i < len(accounts):
-                scraper.pause()
-    print(f"\n{len(posts)} posts stored in {args.db}")
+    try:
+        run_scrape(
+            accounts, args.db,
+            max_posts=args.max_posts,
+            scrolls=args.scrolls,
+            delay=(args.min_delay, args.max_delay),
+            headless=not args.show_browser,
+            li_at=os.environ.get("LI_AT", ""),
+        )
+    except SignedOut as e:
+        print(f"\n{e}\nRun `python -m postscraper login` or set LI_AT in .env.", file=sys.stderr)
+        return 1
     return 0
 
 
@@ -145,6 +129,10 @@ def build_parser() -> argparse.ArgumentParser:
 
     scrape_args(sub.add_parser("scrape", help="collect posts from accounts"))
     top_args(sub.add_parser("top", help="rank stored posts and export the best"))
+    serve = sub.add_parser("serve", help="web dashboard to run and browse everything")
+    serve.add_argument("--host", default="127.0.0.1", help="0.0.0.0 to allow other machines (set POSTSCRAPER_PASSWORD)")
+    serve.add_argument("--port", type=int, default=int(os.environ.get("PORT", 8080)))
+
     run = sub.add_parser("run", help="scrape, then top")
     scrape_args(run)
     top_args(run)
@@ -160,6 +148,10 @@ def main(argv=None) -> int:
         return cmd_scrape(args)
     if args.cmd == "top":
         return cmd_top(args)
+    if args.cmd == "serve":
+        from .server import serve
+        serve(args.host, args.port, args.db)
+        return 0
     code = cmd_scrape(args)
     if code:
         return code
