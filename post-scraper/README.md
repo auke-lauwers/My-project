@@ -47,10 +47,42 @@ Everything runs from the browser:
 - **LinkedIn session**: open the sign-in window, or paste your `li_at`
   cookie. Shows when the session has expired.
 
-### On a server
+### Put it online (Railway)
 
-The Dockerfile runs the dashboard with Chromium included. A server has no
-screen for the sign-in window, so use the cookie option.
+This gives you a private link that works from any browser, with nothing to
+install. Railway builds it from this repo's `Dockerfile`. It needs a paid
+plan, since the app must stay running for its schedule and keep a volume (see
+railway.com/pricing). Menu names below may have shifted since this was written.
+If a step doesn't match, Railway's docs on monorepos (root directory) and
+volumes cover it.
+
+1. Sign up at railway.com with your GitHub account.
+2. **New Project → Deploy from GitHub repo**, pick this repository.
+3. Open the new service's **Settings**:
+   - **Source → Root Directory**: `post-scraper`
+   - **Source → Branch**: the branch this code is on
+     (`claude/vibrant-albattani-dp7y2v` until it's merged into `main`)
+   - **Networking → Generate Domain** to get your link
+4. **Variables**: add `POSTSCRAPER_PASSWORD` with a long password of your
+   own. The app won't start without it: the dashboard holds your LinkedIn
+   session.
+5. Add a **volume** to the service (right-click the service on the project
+   canvas, or the command palette) with mount path `/data`. This keeps your posts, accounts, settings and cookie across
+   redeploys; without it they are wiped every time.
+6. Open your link. The browser asks for a username and password: any
+   username, and the password from step 4.
+7. On the **LinkedIn session** tab, paste your `li_at` cookie (a server has
+   no screen for the sign-in window).
+
+Railway redeploys by itself when you push to the branch.
+
+**About your LinkedIn account:** run from a server, the scraper uses your
+cookie from a data-center IP address, often in another country. LinkedIn is
+quicker to flag that than activity from your home connection, and may sign
+you out (paste a fresh cookie) or restrict the account. Use a secondary
+account for this, keep runs small, and if you get a security check, stop.
+
+### Any other server
 
 ```bash
 docker build -t post-scraper .
@@ -60,14 +92,8 @@ docker build -t post-scraper .
 docker run -d -p 8080:8080 -v post-scraper-data:/data -e POSTSCRAPER_PASSWORD=change-me --name post-scraper post-scraper
 ```
 
-Set `POSTSCRAPER_PASSWORD` whenever the dashboard can be reached from
-another machine. It turns on a browser password prompt (any username).
-Put it behind HTTPS (e.g. Caddy or a Cloudflare Tunnel) before using it
-over the internet. Posts, settings, accounts and the cookie are kept in the
-`/data` volume.
-
-LinkedIn is quicker to flag sign-ins from data-center IP addresses than from
-your home connection. Running it on your own computer is the safer choice.
+Put it behind HTTPS (e.g. Caddy or a Cloudflare Tunnel) if it's reachable
+from the internet: the password is sent with every request.
 
 ## Command line
 

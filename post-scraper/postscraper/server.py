@@ -412,10 +412,12 @@ class Handler(BaseHTTPRequestHandler):
 def serve(host: str = "127.0.0.1", port: int = 8080, db: str = "data/posts.jsonl"):
     Handler.db_path = db
     if host not in ("127.0.0.1", "localhost", "::1") and not os.environ.get("POSTSCRAPER_PASSWORD"):
-        print("Warning: listening on a public address without POSTSCRAPER_PASSWORD set.", file=sys.stderr)
+        # Online, the dashboard holds your LinkedIn session: never serve it without a password.
+        raise SystemExit("Refusing to listen on a public address without POSTSCRAPER_PASSWORD set.")
     threading.Thread(target=scheduler, args=(db,), daemon=True).start()
     httpd = ThreadingHTTPServer((host, port), Handler)
-    print(f"post-scraper dashboard on http://{'127.0.0.1' if host == '0.0.0.0' else host}:{port}")
+    where = f"port {port}" if host == "0.0.0.0" else f"http://{host}:{port}"
+    print(f"post-scraper dashboard on {where}", flush=True)
     try:
         httpd.serve_forever()
     except KeyboardInterrupt:

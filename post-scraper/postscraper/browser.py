@@ -58,6 +58,8 @@ def open_context(p, headless: bool, li_at: str = ""):
         headless=headless,
         locale="en-US",
         viewport={"width": 1280, "height": 900},
+        # Containers give /dev/shm only 64 MB, which crashes Chromium on big pages.
+        args=["--disable-dev-shm-usage"],
         # Optional: use an existing Chrome/Chromium instead of Playwright's download.
         executable_path=os.environ.get("CHROMIUM_PATH") or None,
     )
