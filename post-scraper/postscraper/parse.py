@@ -9,6 +9,8 @@ import re
 from dataclasses import asdict, dataclass, field
 from datetime import datetime, timezone
 
+from urllib.parse import quote, unquote, urlencode
+
 from bs4 import BeautifulSoup
 
 ACTIVITY_RE = re.compile(r"urn:li:(?:activity|ugcPost|share):(\d{15,22})")
@@ -28,6 +30,9 @@ class Post:
     reposts: int = 0
     media: str = ""  # image, video, document, article, poll or empty
     is_repost: bool = False
+    author_url: str = ""
+    headline: str = ""  # the author's tagline, e.g. "Founder @ Acme | Cold email"
+    sources: list = field(default_factory=list)  # "account" and/or "search:<topic>"
     scraped_at: str = field(default_factory=lambda: now_iso())
 
     def to_dict(self) -> dict:
@@ -67,6 +72,22 @@ def posted_at_from_id(post_id: str) -> str:
     if not 1_000_000_000_000 < ms < 4_000_000_000_000:  # 2001..2096: sanity check
         return ""
     return datetime.fromtimestamp(ms / 1000, timezone.utc).replace(microsecond=0).isoformat()
+
+
+def search_url(query: str, date_posted: str = "past-month", sort: str = "relevance") -> str:
+    """LinkedIn's post search. date_posted: past-24h, past-week, past-month or '' for any time."""
+    params = {"keywords": query, "origin": "FACETED_SEARCH", "sortBy": f'"{sort}"'}
+    if date_posted:
+        params["datePosted"] = f'"{date_posted}"'
+    return "https://www.linkedin.com/search/results/content/?" + urlencode(params, quote_via=quote)
+
+
+def account_from_url(href: str) -> str:
+    """'https://www.linkedin.com/in/jane-doe?miniProfileUrn=...' -> 'in/jane-doe'."""
+    m = re.search(r"linkedin\.com/(in|company|school)/([^/?#\s]+)", href or "")
+    if not m:
+        m = re.match(r"/(in|company|school)/([^/?#\s]+)", href or "")
+    return f"{m.group(1)}/{unquote(m.group(2))}" if m else ""
 
 
 def post_url(post_id: str) -> str:
@@ -122,8 +143,12 @@ def _media_type(container) -> str:
     return ""
 
 
-def parse_feed_html(html: str, account: str) -> list:
-    """Parse the posts on a recent-activity or company posts page."""
+def parse_feed_html(html: str, account: str = "", source: str = "account") -> list:
+    """Parse the posts on a recent-activity, company posts or search results page.
+
+    With no account (search results), each post is credited to its author's
+    profile, taken from the author link.
+    """
     soup = BeautifulSoup(html, "html.parser")
     posts, seen = [], set()
     for container in soup.select("[data-urn], [data-id]"):
@@ -145,6 +170,19 @@ def parse_feed_html(html: str, account: str) -> list:
             ".update-components-actor__title",
             ".update-components-actor__name",
         ]))
+        actor = _first(container, [".update-components-actor", ".feed-shared-actor"]) or container
+        author_url = ""
+        for link in actor.select("a[href]"):
+            if account_from_url(link["href"]):
+                author_url = "https://www.linkedin.com/" + account_from_url(link["href"]) + "/"
+                break
+        headline = _text(_first(actor, [
+            ".update-components-actor__description span[aria-hidden='true']",
+            ".update-components-actor__description",
+        ]))
+        post_account = account or account_from_url(author_url)
+        if not post_account:
+            continue  # a search result we can't attribute to anyone
         body = _first(container, [
             ".update-components-update-v2__commentary",
             ".feed-shared-update-v2__description",
@@ -161,7 +199,7 @@ def parse_feed_html(html: str, account: str) -> list:
 
         posts.append(Post(
             post_id=pid,
-            account=account,
+            account=post_account,
             author=author.split(" • ")[0],
             text=text,
             url=post_url(pid),
@@ -171,6 +209,9 @@ def parse_feed_html(html: str, account: str) -> list:
             reposts=_aria_count(container, "reposts?"),
             media=_media_type(container),
             is_repost=is_repost,
+            author_url=author_url,
+            headline=headline,
+            sources=[source],
         ))
     return posts
 

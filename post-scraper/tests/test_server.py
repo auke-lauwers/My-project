@@ -110,3 +110,42 @@ class ServerTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class TopicServerTests(ServerTests):
+    def test_topics_creators_follow_and_filters(self):
+        posts = store.load("data/posts.jsonl")
+        store.upsert(posts, [
+            dict(_post("9", "in/jane", 3000), sources=["search:cold email"], media="document"),
+            dict(_post("8", "in/kim", 40), sources=["search:cold email"]),
+        ])
+        store.save("data/posts.jsonl", posts)
+
+        self.assertEqual(self.post("/api/topics", {"text": "cold   email\n\nsales\n"}), (200, {"ok": True, "count": 2}))
+        self.assertEqual(json.loads(self.get("/api/topics")[2])["text"], "cold email\n\nsales\n")
+
+        creators = json.loads(self.get("/api/creators")[2])
+        self.assertEqual([c["account"] for c in creators["rows"]], ["in/jane", "in/kim"])
+        self.assertEqual(creators["topics"], ["cold email"])
+
+        self.assertEqual(self.post("/api/follow", {"account": "in/jane"}), (200, {"ok": True, "added": True}))
+        self.assertEqual(self.post("/api/follow", {"account": "https://www.linkedin.com/in/jane/"})[1]["added"], False)
+        self.assertIn("in/jane", json.loads(self.get("/api/accounts")[2])["text"])
+        self.assertTrue(json.loads(self.get("/api/creators")[2])["rows"][0]["followed"])
+
+        data = json.loads(self.get("/api/posts?source=topics")[2])
+        self.assertEqual({r["post_id"] for r in data["rows"]}, {"9", "8"})
+        self.assertIn("in/jane", data["followed"])
+        self.assertEqual(data["topics"], ["cold email"])
+        self.assertEqual({r["post_id"] for r in json.loads(self.get("/api/posts?source=accounts")[2])["rows"]},
+                         {"1", "2", "3", "4"})
+        self.assertEqual([r["post_id"] for r in json.loads(self.get("/api/posts?media=document")[2])["rows"]], ["9"])
+        self.assertEqual({r["post_id"] for r in json.loads(self.get("/api/posts?min_reactions=600")[2])["rows"]},
+                         {"9", "3"})
+
+    def test_run_needs_something_to_do(self):
+        os.remove("accounts.txt")
+        status, body = self.post("/api/run", {"what": "topics"})
+        self.assertEqual((status, body["ok"]), (409, False))
+        self.assertIn("topics", body["message"])
+        self.assertEqual(self.post("/api/run", {"what": "nope"})[0], 400)

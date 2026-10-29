@@ -1,4 +1,4 @@
-"""Drive a real Chromium, signed in as you, through each account's posts page.
+"""Drive a real Chromium, signed in as you, through posts pages and post search.
 
 The page is scrolled like a person would, the rendered HTML is parsed for
 text, and LinkedIn's own Voyager API responses (which the page fetches while
@@ -11,7 +11,7 @@ import random
 import re
 import time
 
-from .parse import counts_from_voyager, merge_counts, parse_feed_html
+from .parse import counts_from_voyager, merge_counts, parse_feed_html, search_url
 
 PROFILE_DIR = ".browser-profile"
 SIGNED_IN_MARKER = os.path.join(PROFILE_DIR, ".signed-in")
@@ -124,7 +124,18 @@ class Scraper:
             time.sleep(seconds)
 
     def scrape(self, account_value: str, max_posts=30) -> list:
+        """Recent posts from one profile or company page."""
         account, url = normalize_account(account_value)
+        return self._collect(url, max_posts, account=account, source="account")
+
+    def search(self, query: str, max_posts=50, date_posted="past-month") -> list:
+        """Posts from anyone matching a topic, via LinkedIn's post search."""
+        query = " ".join(query.split())
+        if not query:
+            raise ValueError("empty topic")
+        return self._collect(search_url(query, date_posted), max_posts, source=f"search:{query}")
+
+    def _collect(self, url, max_posts, account="", source="account") -> list:
         self._counts = {}
         self.page.goto(url, wait_until="domcontentloaded", timeout=60_000)
         if _signed_out(self.page):
@@ -141,16 +152,27 @@ class Scraper:
         for _ in range(self.scrolls):
             self._expand_see_more()
             before = len(posts)
-            posts = parse_feed_html(self.page.content(), account)
+            posts = parse_feed_html(self.page.content(), account, source)
             stalled = stalled + 1 if len(posts) == before else 0
             if len(posts) >= max_posts or stalled >= 2:  # enough, or nothing more loads
                 break
+            self._click_show_more_results()
             self.page.mouse.wheel(0, random.randint(2500, 4000))
             time.sleep(random.uniform(1.5, 3.5))
 
         self._expand_see_more()
-        posts = parse_feed_html(self.page.content(), account)
+        posts = parse_feed_html(self.page.content(), account, source)
         return merge_counts(posts, self._counts)[:max_posts]
+
+    def _click_show_more_results(self):
+        """Search results stop scrolling after a while and show a button instead."""
+        try:
+            self.page.evaluate(
+                """() => document.querySelectorAll('button.scaffold-finite-scroll__load-button')
+                    .forEach(b => b.click())"""
+            )
+        except Exception:
+            pass
 
     def _expand_see_more(self):
         """Click 'see more' so the full post text is in the DOM."""

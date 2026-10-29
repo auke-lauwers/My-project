@@ -2,6 +2,7 @@
 
     python -m postscraper login
     python -m postscraper scrape --accounts accounts.txt --max-posts 30
+    python -m postscraper scrape --topic "cold email" --date past-week
     python -m postscraper top --days 90 --limit 50 --out out/top.md
     python -m postscraper run            # scrape, then top
     python -m postscraper serve          # web dashboard on http://127.0.0.1:8080
@@ -39,6 +40,10 @@ def read_accounts(values, file) -> list:
     return list(dict.fromkeys(items))
 
 
+def _existing(path):
+    return path if os.path.exists(path) else None
+
+
 def cmd_login(args) -> int:
     from .browser import login
     login()
@@ -49,10 +54,12 @@ def cmd_scrape(args) -> int:
     from .browser import SignedOut
     from .runner import run_scrape
 
-    file = args.accounts or (None if args.account else "accounts.txt")
-    accounts = read_accounts(args.account, file)
-    if not accounts:
-        print("Give accounts with --account or --accounts FILE.", file=sys.stderr)
+    # Nothing named on the command line: use accounts.txt and topics.txt.
+    named = args.account or args.accounts or args.topic or args.topics
+    accounts = read_accounts(args.account, args.accounts or (None if named else _existing("accounts.txt")))
+    topics = read_accounts(args.topic, args.topics or (None if named else _existing("topics.txt")))
+    if not accounts and not topics:
+        print("Give accounts (--account, --accounts FILE) or topics (--topic, --topics FILE).", file=sys.stderr)
         return 2
     if args.shuffle:
         random.shuffle(accounts)
@@ -60,6 +67,9 @@ def cmd_scrape(args) -> int:
     try:
         run_scrape(
             accounts, args.db,
+            topics=topics,
+            topic_posts=args.topic_posts,
+            date_posted="" if args.date == "any" else args.date,
             max_posts=args.max_posts,
             scrolls=args.scrolls,
             delay=(args.min_delay, args.max_delay),
@@ -109,7 +119,12 @@ def build_parser() -> argparse.ArgumentParser:
     def scrape_args(p):
         p.add_argument("--account", action="append", help="profile/company URL, in/<handle> or company/<slug>")
         p.add_argument("--accounts", help="file with one account per line (default accounts.txt)")
+        p.add_argument("--topic", action="append", help='search posts about a topic, e.g. --topic "cold email"')
+        p.add_argument("--topics", help="file with one topic per line (default topics.txt)")
         p.add_argument("--max-posts", type=int, default=30, help="posts per account (default 30)")
+        p.add_argument("--topic-posts", type=int, default=50, help="posts per topic (default 50)")
+        p.add_argument("--date", choices=["past-24h", "past-week", "past-month", "any"], default="past-month",
+                       help="how recent topic search results must be (default past-month)")
         p.add_argument("--scrolls", type=int, default=10, help="max page scrolls per account")
         p.add_argument("--min-delay", type=float, default=8, help="min seconds between accounts")
         p.add_argument("--max-delay", type=float, default=20, help="max seconds between accounts")

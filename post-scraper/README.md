@@ -1,13 +1,21 @@
 # post-scraper
 
-Collects recent posts from a list of big LinkedIn accounts and ranks the
-best performers by engagement. Exports CSV, JSON or a readable Markdown
-swipe file.
+Finds the best-performing LinkedIn posts two ways, like SayWhat's
+Inspiration:
+
+- **Topics**: search LinkedIn for posts about a topic ("cold email",
+  "founder lessons") from anyone, ranked by engagement. The people behind the
+  best posts are listed as **Creators**, one click from being added to your
+  accounts.
+- **Accounts**: collect the recent posts of specific people and companies.
+
+Everything is ranked by engagement and exports as CSV, JSON or a readable
+Markdown swipe file.
 
 It drives a real Chromium signed in to **your own LinkedIn account**,
-scrolls each account's posts page and reads:
+scrolls LinkedIn's post search or each account's posts page and reads:
 
-- **text, author and media type** from the rendered page
+- **text, author, the author's headline and media type** from the rendered page
 - **exact reaction, comment and repost counts** from LinkedIn's own API
   responses, which the page loads as it scrolls. The page itself shows
   rounded numbers like "12K", so these are used only as a fallback.
@@ -32,7 +40,7 @@ scrolls each account's posts page and reads:
 If double-clicking doesn't work, open Terminal, type `bash ` (with a space),
 drag the file into the window and press Enter.
 
-Your posts, accounts, settings and LinkedIn session are stored in
+Your posts, accounts, topics, settings and LinkedIn session are stored in
 `~/Library/Application Support/Post Scraper`, so you can replace the folder
 with a newer download without losing anything.
 
@@ -59,11 +67,19 @@ python -m postscraper serve     # then open http://127.0.0.1:8080
 
 Everything runs from the browser:
 
-- **Top posts**: the ranked posts as cards, with filters for search, account,
-  time range, ranking (most engagement or biggest breakouts) and posts per
-  account. Copy a post's text, open it on LinkedIn, or export the current
-  view as CSV, Markdown or JSON.
-- **Run**: start or stop a scrape and follow the live log. Settings for
+- **Top posts**: the ranked posts as cards, with filters for text search,
+  where the post was found (your accounts or a topic), account, time range,
+  ranking (most engagement or biggest breakouts), format (text, image,
+  document, video…), minimum reactions and posts per account. Copy a post's
+  text, open it on LinkedIn, add its author to your accounts, or export the
+  current view as CSV, Markdown or JSON.
+- **Topics**: the topics to search, how recent results must be, and how many
+  posts per topic. "Save and search now" runs just the topics.
+- **Creators**: everyone whose posts came up in topic searches, with their
+  headline, best post, best and average score, and an **Add to accounts**
+  button.
+- **Run**: run everything, only accounts or only topics; stop; follow the
+  live log. Settings for
   posts per account and wait times, and an optional automatic run every
   day, 3 days or week (it runs while the dashboard is running).
 - **Accounts**: edit the account list.
@@ -121,7 +137,7 @@ from the internet: the password is sent with every request.
 ## Command line
 
 ```bash
-python -m postscraper run                       # scrape accounts.txt, rank, write out/top.csv + out/top.md
+python -m postscraper run                       # accounts.txt + topics.txt, rank, write out/top.csv + out/top.md
 ```
 
 Or in steps:
@@ -129,6 +145,7 @@ Or in steps:
 ```bash
 python -m postscraper scrape --max-posts 40     # adds to data/posts.jsonl
 python -m postscraper scrape --account https://www.linkedin.com/in/someone/
+python -m postscraper scrape --topic "cold email" --date past-week --topic-posts 80
 python -m postscraper top --days 90 --limit 50 --out out/top.md --out out/top.csv
 python -m postscraper top --sort vs_median --per-account 3   # breakout posts
 ```
@@ -183,6 +200,7 @@ python -m unittest
 
 ```
 accounts.txt              # accounts to scrape
+topics.txt                # topics to search
 postscraper/server.py     # dashboard API, background runs, schedule
 postscraper/static/       # dashboard page
 postscraper/runner.py     # one scrape run, shared by CLI and dashboard

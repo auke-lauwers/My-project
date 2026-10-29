@@ -11,7 +11,7 @@ import os
 
 CSV_FIELDS = [
     "rank", "score", "vs_median", "account", "author", "posted_at", "reactions",
-    "comments", "reposts", "media", "url", "text",
+    "comments", "reposts", "media", "url", "author_url", "headline", "sources", "text",
 ]
 
 
@@ -43,8 +43,9 @@ def upsert(posts: dict, new) -> tuple:
             updated += 1
             old = posts[d["post_id"]]
             # Keep text/author from an earlier scrape if this one missed them.
-            for key in ("text", "author", "media"):
-                d[key] = d[key] or old.get(key, "")
+            for key in ("text", "author", "media", "author_url", "headline"):
+                d[key] = d.get(key) or old.get(key, "")
+            d["sources"] = sorted(set(old.get("sources") or ["account"]) | set(d.get("sources") or []))
         else:
             added += 1
         posts[d["post_id"]] = d
@@ -61,7 +62,7 @@ def render(rows, fmt: str) -> str:
     buf = io.StringIO()
     w = csv.DictWriter(buf, fieldnames=CSV_FIELDS, extrasaction="ignore")
     w.writeheader()
-    w.writerows(ranked)
+    w.writerows({**r, "sources": "; ".join(r.get("sources") or [])} for r in ranked)
     return buf.getvalue()
 
 

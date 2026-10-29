@@ -5,7 +5,7 @@
 # Every run: starts the dashboard and opens it in your browser.
 # Closing this Terminal window stops the dashboard.
 #
-# Your posts, accounts, settings and LinkedIn session are kept in
+# Your posts, accounts, topics, settings and LinkedIn session are kept in
 # ~/Library/Application Support/Post Scraper, so they survive downloading a
 # newer version of this folder.
 
@@ -69,8 +69,9 @@ if [ ! -f "$VENV/.chromium-installed" ]; then
   touch "$VENV/.chromium-installed"
 fi
 
-# Starter account list on first run.
+# Starter account and topic lists on first run.
 [ -f "$DATA_DIR/accounts.txt" ] || cp "$APP_DIR/accounts.txt" "$DATA_DIR/accounts.txt"
+[ -f "$DATA_DIR/topics.txt" ] || cp "$APP_DIR/topics.txt" "$DATA_DIR/topics.txt"
 
 # First free port from 8080.
 PORT=""

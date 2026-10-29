@@ -171,3 +171,74 @@ class StoreTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+SEARCH_HTML = """
+<div class="search-results-container">
+  <div data-urn="urn:li:activity:7255000000000000010">
+    <div class="update-components-actor">
+      <a class="update-components-actor__meta-link" href="https://www.linkedin.com/in/jane-doe?miniProfileUrn=abc">
+        <span class="update-components-actor__title"><span aria-hidden="true">Jane Doe</span></span>
+        <span class="update-components-actor__description"><span aria-hidden="true">Founder @ Acme | Cold email</span></span>
+      </a>
+    </div>
+    <div class="update-components-text">Cold email is not dead.</div>
+    <span class="social-details-social-counts__reactions-count">2,100</span>
+  </div>
+  <div data-urn="urn:li:activity:7255000000000000011">
+    <div class="update-components-actor"><a href="/company/acme-inc/">Acme</a></div>
+    <div class="update-components-text">We are hiring.</div>
+  </div>
+  <div data-urn="urn:li:activity:7255000000000000012">
+    <div class="update-components-actor"><span>No link at all</span></div>
+  </div>
+</div>
+"""
+
+
+class SearchTests(unittest.TestCase):
+    def test_search_url(self):
+        from postscraper.parse import search_url
+        url = search_url("cold email", "past-week")
+        self.assertIn("keywords=cold%20email", url)
+        self.assertIn("datePosted=%22past-week%22", url)
+        self.assertNotIn("datePosted", search_url("x", ""))
+
+    def test_account_from_url(self):
+        from postscraper.parse import account_from_url
+        self.assertEqual(account_from_url("https://www.linkedin.com/in/jane-doe?x=1"), "in/jane-doe")
+        self.assertEqual(account_from_url("/company/acme-inc/"), "company/acme-inc")
+        self.assertEqual(account_from_url("https://www.linkedin.com/feed/"), "")
+
+    def test_parse_search_results_credits_authors(self):
+        posts = parse_feed_html(SEARCH_HTML, source="search:cold email")
+        self.assertEqual([p.account for p in posts], ["in/jane-doe", "company/acme-inc"])  # 3rd unattributable
+        jane = posts[0]
+        self.assertEqual(jane.author, "Jane Doe")
+        self.assertEqual(jane.headline, "Founder @ Acme | Cold email")
+        self.assertEqual(jane.author_url, "https://www.linkedin.com/in/jane-doe/")
+        self.assertEqual(jane.sources, ["search:cold email"])
+        self.assertEqual(jane.reactions, 2100)
+
+    def test_upsert_merges_sources(self):
+        posts = {}
+        store.upsert(posts, [dict(_post("1", "in/a", 5), sources=["account"])])
+        store.upsert(posts, [dict(_post("1", "in/a", 7), sources=["search:sales"], headline="")])
+        self.assertEqual(posts["1"]["sources"], ["account", "search:sales"])
+        self.assertEqual(posts["1"]["reactions"], 7)
+
+    def test_creators(self):
+        posts = [
+            dict(_post("1", "in/jane", 2000), sources=["search:cold email"], headline="Founder"),
+            dict(_post("2", "in/jane", 100), sources=["account"]),
+            dict(_post("3", "in/bob", 500), sources=["search:sales"]),
+            dict(_post("4", "in/me", 9000), sources=["account"]),  # never found via a topic
+        ]
+        rows = rank.creators(posts, followed={"in/bob"})
+        self.assertEqual([c["account"] for c in rows], ["in/jane", "in/bob"])
+        jane, bob = rows
+        self.assertEqual((jane["posts"], jane["best_score"], jane["avg_score"]), (2, 2000, 1050))
+        self.assertEqual(jane["topics"], ["cold email"])
+        self.assertTrue(bob["followed"])
+        self.assertEqual([c["account"] for c in rank.creators(posts, topic="sales")], ["in/bob"])
+        self.assertEqual(rank.topics(posts), ["cold email", "sales"])

@@ -28,9 +28,12 @@ from .cli import read_accounts
 STATIC = Path(__file__).parent / "static"
 MAX_BODY = 1_000_000
 ACCOUNTS_FILE = "accounts.txt"
+TOPICS_FILE = "topics.txt"
 SETTINGS_FILE = "data/settings.json"
+DATE_RANGES = ("past-24h", "past-week", "past-month", "")
 DEFAULT_SETTINGS = {
     "max_posts": 30, "scrolls": 10, "min_delay": 8, "max_delay": 20,
+    "topic_posts": 50, "date_posted": "past-month",
     "show_browser": False, "schedule_hours": 0, "last_run_at": None,
 }
 
@@ -59,24 +62,52 @@ def save_settings(settings: dict):
 
 def clean_settings(body: dict) -> dict:
     s = load_settings()
-    ints = {"max_posts": (1, 200), "scrolls": (1, 50), "schedule_hours": (0, 24 * 30)}
+    ints = {"max_posts": (1, 200), "topic_posts": (1, 200), "scrolls": (1, 50),
+            "schedule_hours": (0, 24 * 30)}
     floats = {"min_delay": (3, 600), "max_delay": (3, 600)}
     for key, (lo, hi) in {**ints, **floats}.items():
         if key in body and body[key] not in ("", None):
             value = float(body[key])
             s[key] = max(lo, min(hi, int(value) if key in ints else value))
+    if body.get("date_posted") in DATE_RANGES:
+        s["date_posted"] = body["date_posted"]
     if "show_browser" in body:
         s["show_browser"] = bool(body["show_browser"])
     s["max_delay"] = max(s["max_delay"], s["min_delay"])
     return s
 
 
-def read_accounts_text() -> str:
+def read_text(path: str) -> str:
     try:
-        with open(ACCOUNTS_FILE, encoding="utf-8") as f:
+        with open(path, encoding="utf-8") as f:
             return f.read()
     except OSError:
         return ""
+
+
+def read_list(path: str) -> list:
+    return read_accounts([], path) if os.path.exists(path) else []
+
+
+def followed_accounts() -> set:
+    out = set()
+    for line in read_list(ACCOUNTS_FILE):
+        try:
+            out.add(normalize_account(line)[0])
+        except ValueError:
+            pass
+    return out
+
+
+def follow(account: str) -> bool:
+    """Add an account to accounts.txt; False if it was already there."""
+    account = normalize_account(account)[0]
+    if account in followed_accounts():
+        return False
+    text = read_text(ACCOUNTS_FILE)
+    with open(ACCOUNTS_FILE, "a", encoding="utf-8") as f:
+        f.write(("" if not text or text.endswith("\n") else "\n") + account + "  # found via topic search\n")
+    return True
 
 
 def write_env_value(key: str, value: str, path: str = ".env"):
@@ -146,13 +177,16 @@ class Job:
 JOB = Job()
 
 
-def start_scrape(db: str, accounts=None, trigger="manual") -> tuple:
+def start_scrape(db: str, what="all", trigger="manual") -> tuple:
+    """what: 'all', 'accounts' or 'topics'."""
     from .browser import SignedOut
     from .runner import run_scrape
 
-    accounts = accounts or read_accounts([], ACCOUNTS_FILE if os.path.exists(ACCOUNTS_FILE) else None)
-    if not accounts:
-        return False, "Add some accounts first."
+    accounts = read_list(ACCOUNTS_FILE) if what in ("all", "accounts") else []
+    topics = read_list(TOPICS_FILE) if what in ("all", "topics") else []
+    if not accounts and not topics:
+        return False, {"accounts": "Add some accounts first.", "topics": "Add some topics first."}.get(
+            what, "Add some accounts or topics first.")
     settings = load_settings()
 
     def progress(done, total):
@@ -161,15 +195,16 @@ def start_scrape(db: str, accounts=None, trigger="manual") -> tuple:
 
     def work():
         with JOB.lock:
-            JOB.state["total"] = len(accounts)
+            JOB.state["total"] = len(accounts) + len(topics)
         # Stamp the start, not the end, so a failing run isn't retried every minute.
         s = load_settings()
         s["last_run_at"] = now_iso()
         save_settings(s)
         try:
             summary = run_scrape(
-                accounts, db,
-                max_posts=settings["max_posts"], scrolls=settings["scrolls"],
+                accounts, db, topics=topics,
+                max_posts=settings["max_posts"], topic_posts=settings["topic_posts"],
+                date_posted=settings["date_posted"], scrolls=settings["scrolls"],
                 delay=(settings["min_delay"], settings["max_delay"]),
                 headless=not (settings["show_browser"] and can_open_browser()),
                 li_at=os.environ.get("LI_AT", ""),
@@ -184,7 +219,8 @@ def start_scrape(db: str, accounts=None, trigger="manual") -> tuple:
 
     if not JOB.start("scrape", work, trigger):
         return False, "A job is already running."
-    return True, f"Started: {len(accounts)} accounts."
+    parts = [f"{len(accounts)} accounts" if accounts else "", f"{len(topics)} topics" if topics else ""]
+    return True, "Started: " + " and ".join(p for p in parts if p) + "."
 
 
 def start_login() -> tuple:
@@ -240,7 +276,7 @@ def _q(query: dict, key: str, default=None):
 
 def query_rows(db: str, query: dict) -> tuple:
     posts = list(store.load(db).values())
-    accounts = sorted({p["account"] for p in posts})
+    meta = {"accounts": sorted({p["account"] for p in posts}), "topics": rank.topics(posts)}
     days = _q(query, "days")
     per_account = _q(query, "per_account")
     account = _q(query, "account")
@@ -258,8 +294,17 @@ def query_rows(db: str, query: dict) -> tuple:
     q = (_q(query, "q") or "").lower()
     if q:
         rows = [r for r in rows if q in (r.get("text") or "").lower() or q in (r.get("author") or "").lower()]
+    source = _q(query, "source")
+    if source:
+        rows = [r for r in rows if rank.has_source(r, source)]
+    media = _q(query, "media")
+    if media:
+        rows = [r for r in rows if (r.get("media") or "text") == media]
+    min_reactions = int(_q(query, "min_reactions", "0"))
+    if min_reactions:
+        rows = [r for r in rows if r["reactions"] >= min_reactions]
     rows = rank.pick(rows, int(_q(query, "limit", "100")), int(per_account) if per_account else None)
-    return rows, accounts
+    return rows, meta
 
 
 class Handler(BaseHTTPRequestHandler):
@@ -324,10 +369,18 @@ class Handler(BaseHTTPRequestHandler):
             elif url.path == "/api/job":
                 self._json(JOB.snapshot())
             elif url.path == "/api/accounts":
-                self._json({"text": read_accounts_text()})
+                self._json({"text": read_text(ACCOUNTS_FILE)})
             elif url.path == "/api/posts":
-                rows, accounts = query_rows(self.db_path, query)
-                self._json({"rows": rows, "accounts": accounts})
+                rows, meta = query_rows(self.db_path, query)
+                self._json({"rows": rows, "followed": sorted(followed_accounts()), **meta})
+            elif url.path == "/api/topics":
+                self._json({"text": read_text(TOPICS_FILE)})
+            elif url.path == "/api/creators":
+                days = _q(query, "days")
+                posts = list(store.load(self.db_path).values())
+                self._json({"rows": rank.creators(posts, days=int(days) if days else None,
+                                                  topic=_q(query, "topic"), followed=followed_accounts()),
+                            "topics": rank.topics(posts)})
             elif url.path == "/api/export":
                 fmt = _q(query, "format", "csv")
                 if fmt not in ("csv", "json", "md"):
@@ -363,6 +416,14 @@ class Handler(BaseHTTPRequestHandler):
                 with open(ACCOUNTS_FILE, "w", encoding="utf-8") as f:
                     f.write(text.rstrip() + "\n")
                 self._json({"ok": True, "count": len(read_accounts([], ACCOUNTS_FILE))})
+            elif path == "/api/topics":
+                lines = [" ".join(l.split()) for l in str(body.get("text", "")).splitlines()]
+                with open(TOPICS_FILE, "w", encoding="utf-8") as f:
+                    f.write("\n".join(lines).strip() + "\n")
+                self._json({"ok": True, "count": len(read_list(TOPICS_FILE))})
+            elif path == "/api/follow":
+                added = follow(str(body.get("account", "")))
+                self._json({"ok": True, "added": added})
             elif path == "/api/settings":
                 s = clean_settings(body)
                 save_settings(s)
@@ -378,8 +439,10 @@ class Handler(BaseHTTPRequestHandler):
                 ok, message = start_login()
                 self._json({"ok": ok, "message": message}, 200 if ok else 409)
             elif path == "/api/run":
-                only = body.get("accounts")
-                ok, message = start_scrape(self.db_path, accounts=only if isinstance(only, list) else None)
+                what = body.get("what", "all")
+                if what not in ("all", "accounts", "topics"):
+                    raise ValueError("what must be all, accounts or topics")
+                ok, message = start_scrape(self.db_path, what=what)
                 self._json({"ok": ok, "message": message}, 200 if ok else 409)
             elif path == "/api/stop":
                 JOB.stop.set()
@@ -395,8 +458,9 @@ class Handler(BaseHTTPRequestHandler):
         posts = store.load(self.db_path)
         return {
             "posts": len(posts),
-            "accounts": len(read_accounts([], ACCOUNTS_FILE)) if os.path.exists(ACCOUNTS_FILE) else 0,
-            "scraped_accounts": len({p["account"] for p in posts.values()}),
+            "accounts": len(read_list(ACCOUNTS_FILE)),
+            "topics": len(read_list(TOPICS_FILE)),
+            "scraped_accounts": len(followed_accounts() & {p["account"] for p in posts.values()}),
             "session": {
                 "cookie_set": bool(os.environ.get("LI_AT")),
                 "profile_saved": os.path.exists(SIGNED_IN_MARKER),

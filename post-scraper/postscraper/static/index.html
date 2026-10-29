@@ -57,7 +57,10 @@
   .log:empty::before { content: "Nothing has run yet."; color: var(--muted); }
 
   /* top posts */
-  .filters { display: grid; gap: 12px; grid-template-columns: 2fr repeat(4, minmax(120px, 1fr)); align-items: end; margin-bottom: 12px; }
+  .filters { display: grid; gap: 12px; grid-template-columns: repeat(4, minmax(0, 1fr)); align-items: end; margin-bottom: 12px; }
+  .filters .wide { grid-column: span 2; }
+  label.inline { display: flex; align-items: center; gap: 8px; color: var(--text); }
+  label.inline select { width: auto; min-height: 34px; padding: 4px 8px; }
   .filters-2 { display: flex; gap: 16px; align-items: center; flex-wrap: wrap; margin-bottom: 20px; }
   .filters-2 .exports { margin-left: auto; display: flex; gap: 8px; }
   .post { border: 1px solid var(--line); border-radius: var(--r-card); background: var(--card); padding: 18px 20px; margin-bottom: 12px; display: grid; grid-template-columns: 44px 1fr; gap: 4px 16px; }
@@ -77,6 +80,18 @@
   .empty { text-align: center; padding: 56px 16px; color: var(--muted); border: 1px dashed var(--line); border-radius: var(--r-card); }
   .empty .btn { margin-top: 16px; }
 
+  .post .headline { color: var(--muted); font-size: 13px; width: 100%; margin-top: -2px; }
+  .tag.topic { color: var(--accent); border-color: #3a2d5c; }
+  .follow { white-space: nowrap; background: none; border: 1px solid var(--line); color: var(--text); border-radius: 9999px; font: inherit; font-size: 12px; padding: 1px 10px; cursor: pointer; }
+  .follow:hover { border-color: var(--accent); }
+  .follow[disabled] { color: var(--ok); border-color: transparent; cursor: default; }
+  table { width: 100%; border-collapse: collapse; font-size: 14px; }
+  th, td { text-align: left; padding: 12px 10px; border-bottom: 1px solid var(--line); vertical-align: top; }
+  th { color: var(--muted); font-weight: 500; font-size: 12px; text-transform: uppercase; letter-spacing: .04em; white-space: nowrap; }
+  td.num { font-variant-numeric: tabular-nums; white-space: nowrap; }
+  td .snippet { color: #cfcfcf; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; max-width: 380px; }
+  td a { color: var(--text); }
+  .table-wrap { overflow-x: auto; }
   .session-state { display: flex; gap: 12px; align-items: center; font-size: 15px; margin-bottom: 12px; }
   ol.steps { margin: 0 0 16px; padding-left: 20px; color: var(--muted); font-size: 14px; }
   ol.steps li { margin-bottom: 4px; }
@@ -86,7 +101,7 @@
     header { padding: 12px 16px; gap: 12px; }
     .stats { margin-left: 0; width: 100%; }
     .filters { grid-template-columns: 1fr 1fr; }
-    .filters label:first-child { grid-column: 1 / -1; }
+    .filters .wide { grid-column: 1 / -1; }
     .filters-2 .exports { margin-left: 0; }
     .post { grid-template-columns: 1fr; }
     .post .rank { grid-row: auto; font-size: 16px; }
@@ -98,8 +113,10 @@
   <h1>Post<span>Scraper</span></h1>
   <nav role="tablist">
     <button role="tab" data-tab="posts" aria-selected="true">Top posts</button>
-    <button role="tab" data-tab="run">Run</button>
+    <button role="tab" data-tab="topics">Topics</button>
+    <button role="tab" data-tab="creators">Creators</button>
     <button role="tab" data-tab="accounts">Accounts</button>
+    <button role="tab" data-tab="run">Run</button>
     <button role="tab" data-tab="session">LinkedIn session</button>
   </nav>
   <div class="stats" id="stats"></div>
@@ -109,9 +126,10 @@
   <!-- TOP POSTS -->
   <section id="posts">
     <h2>Top posts</h2>
-    <p class="lede">The best-performing posts from your accounts. <b>Score</b> = reactions + 2× comments + 3× reposts. <b>×median</b> = how far a post beat that account's typical post.</p>
+    <p class="lede">The best-performing posts from your accounts and topic searches. <b>Score</b> = reactions + 2× comments + 3× reposts. <b>×median</b> = how far a post beat that account's typical post.</p>
     <div class="filters">
-      <label>Search text or author <input id="f-q" type="search" placeholder="e.g. hiring, AI, failure"></label>
+      <label class="wide">Search text or author <input id="f-q" type="search" placeholder="e.g. hiring, AI, failure"></label>
+      <label>Found through <select id="f-source"><option value="">Everything</option></select></label>
       <label>Account <select id="f-account"><option value="">All accounts</option></select></label>
       <label>Posted in <select id="f-days">
         <option value="7">Last 7 days</option><option value="30">Last 30 days</option>
@@ -120,11 +138,20 @@
       <label>Rank by <select id="f-sort">
         <option value="score">Most engagement</option><option value="vs_median">Biggest breakouts (×median)</option>
       </select></label>
-      <label>Per account <select id="f-per">
-        <option value="">No limit</option><option value="1">1</option><option value="3" selected>3</option><option value="5">5</option>
+      <label>Format <select id="f-media">
+        <option value="">Any format</option><option value="text">Text only</option><option value="image">Image</option>
+        <option value="document">Document / carousel</option><option value="video">Video</option>
+        <option value="article">Article</option><option value="poll">Poll</option>
+      </select></label>
+      <label>Min. reactions <select id="f-min">
+        <option value="">Any</option><option value="100">100+</option><option value="500">500+</option>
+        <option value="1000">1,000+</option><option value="5000">5,000+</option>
       </select></label>
     </div>
     <div class="filters-2">
+      <label class="inline">Max per account <select id="f-per">
+        <option value="">No limit</option><option value="1">1</option><option value="3" selected>3</option><option value="5">5</option>
+      </select></label>
       <label class="check"><input type="checkbox" id="f-reposts"> Include reposts</label>
       <span class="muted" id="result-count"></span>
       <div class="exports">
@@ -136,13 +163,59 @@
     <div id="post-list"></div>
   </section>
 
+  <!-- TOPICS -->
+  <section id="topics" hidden>
+    <h2>Topics</h2>
+    <p class="lede">Search LinkedIn for posts about a topic, from anyone, and rank them by engagement. The people behind the best posts show up under <b>Creators</b>.</p>
+    <div class="card">
+      <form id="topics-form">
+        <label for="topics-text" class="muted" style="margin-bottom:8px">One topic per line, the way you'd type it in LinkedIn's search</label>
+        <textarea id="topics-text" spellcheck="false" style="min-height:200px" placeholder="cold email&#10;founder lessons&#10;B2B sales"></textarea>
+        <div class="grid" style="margin-top:12px">
+          <label>Posted in <select name="date_posted">
+            <option value="past-24h">Last 24 hours</option><option value="past-week">Last week</option>
+            <option value="past-month">Last month</option><option value="">Any time</option>
+          </select></label>
+          <label>Posts per topic <input type="number" name="topic_posts" min="1" max="200"></label>
+        </div>
+        <div class="row" style="margin-top:12px">
+          <button class="btn" type="submit">Save and search now</button>
+          <button class="btn ghost" type="button" id="topics-save">Save only</button>
+          <span id="topics-msg" class="muted"></span>
+        </div>
+      </form>
+    </div>
+    <p class="muted">LinkedIn decides which posts its search returns, so results lean towards what it thinks is relevant. Searching the same topic again later adds new posts and updates the numbers on old ones.</p>
+  </section>
+
+  <!-- CREATORS -->
+  <section id="creators" hidden>
+    <h2>Creators</h2>
+    <p class="lede">People whose posts came up in your topic searches, best first. Add the good ones to your accounts so every run collects their newest posts.</p>
+    <div class="toolbar row" style="margin-bottom:16px">
+      <label style="min-width:200px">Topic <select id="c-topic"><option value="">All topics</option></select></label>
+      <label style="min-width:160px">Posted in <select id="c-days">
+        <option value="30">Last 30 days</option><option value="90" selected>Last 90 days</option><option value="">Any time</option>
+      </select></label>
+      <span class="muted" id="c-count" style="align-self:end;padding-bottom:10px"></span>
+    </div>
+    <div class="card table-wrap" style="padding:8px 12px">
+      <table>
+        <thead><tr><th>Creator</th><th>Best post</th><th>Best</th><th>Average</th><th>Posts</th><th></th></tr></thead>
+        <tbody id="c-body"></tbody>
+      </table>
+    </div>
+  </section>
+
   <!-- RUN -->
   <section id="run" hidden>
     <h2>Run the scraper</h2>
-    <p class="lede">Visits every account in your list, collects recent posts and updates the numbers of posts you already have.</p>
+    <p class="lede">Visits every account in your list and searches every topic, collects posts and updates the numbers of posts you already have.</p>
     <div class="card">
       <div class="row">
-        <button class="btn" id="run-btn">Start run</button>
+        <button class="btn" id="run-btn" data-what="all">Run everything</button>
+        <button class="btn ghost" data-what="accounts">Accounts only</button>
+        <button class="btn ghost" data-what="topics">Topics only</button>
         <button class="btn danger" id="stop-btn" hidden>Stop</button>
         <span id="run-msg" class="muted"></span>
       </div>
@@ -158,9 +231,14 @@
       <form id="settings-form">
         <div class="grid">
           <label>Posts per account <input type="number" name="max_posts" min="1" max="200"></label>
+          <label>Posts per topic <input type="number" name="topic_posts" min="1" max="200"></label>
           <label>Scrolls per account <input type="number" name="scrolls" min="1" max="50"></label>
           <label>Min wait (seconds) <input type="number" name="min_delay" min="3" step="1"></label>
           <label>Max wait (seconds) <input type="number" name="max_delay" min="3" step="1"></label>
+          <label>Topic posts from <select name="date_posted">
+            <option value="past-24h">Last 24 hours</option><option value="past-week">Last week</option>
+            <option value="past-month">Last month</option><option value="">Any time</option>
+          </select></label>
           <label>Run automatically <select name="schedule_hours">
             <option value="0">Off</option><option value="24">Every day</option>
             <option value="72">Every 3 days</option><option value="168">Every week</option>
@@ -239,6 +317,7 @@ const ago = iso => {
   if (d < 30) return `${Math.floor(d)} days ago`;
   return new Date(iso).toLocaleDateString(undefined, {day: "numeric", month: "short", year: "numeric"});
 };
+const topicsOf = r => (r.sources || []).filter(s => s.startsWith("search:")).map(s => s.slice(7));
 
 async function api(path, body) {
   const opts = body === undefined ? {} : {method: "POST", headers: {"Content-Type": "application/json"}, body: JSON.stringify(body)};
@@ -248,14 +327,23 @@ async function api(path, body) {
   return data;
 }
 function say(el, text, kind = "muted") { el.className = kind; el.textContent = text; }
+function fillSelect(sel, options, keep) {
+  // options: [[value, label], ...]; keeps the current (or wanted) value when it still exists
+  const want = keep ?? sel.value;
+  sel.innerHTML = options.map(([v, l]) => `<option value="${esc(v)}">${esc(l)}</option>`).join("");
+  sel.value = options.some(([v]) => v === want) ? want : options[0][0];
+}
 
 // ---- tabs
 function show(tab) {
+  if (!$("#" + tab)) tab = "posts";
   $$("nav button").forEach(b => b.setAttribute("aria-selected", b.dataset.tab === tab));
   $$("main > section").forEach(s => s.hidden = s.id !== tab);
   try { localStorage.setItem("ps-tab", tab); } catch {}
   if (tab === "posts") loadPosts();
   if (tab === "accounts") loadAccounts();
+  if (tab === "topics") loadTopics();
+  if (tab === "creators") loadCreators();
 }
 $$("nav button").forEach(b => b.onclick = () => show(b.dataset.tab));
 
@@ -274,7 +362,7 @@ async function refreshStatus() {
   const runBit = job.running
     ? `<span><span class="dot live"></span>${job.kind === "login" ? "Signing in" : `Running ${job.done}/${job.total}`}</span>`
     : s.next_run_at ? `<span>Next run ${new Date(s.next_run_at).toLocaleString(undefined, {weekday: "short", hour: "2-digit", minute: "2-digit"})}</span>` : "";
-  $("#stats").innerHTML = `${runBit}<span>${fmt(s.posts)} posts · ${s.scraped_accounts}/${s.accounts} accounts</span><span><span class="dot ${dot}"></span>${esc(label)}</span>`;
+  $("#stats").innerHTML = `${runBit}<span>${fmt(s.posts)} posts · ${s.accounts} accounts · ${s.topics} topics</span><span><span class="dot ${dot}"></span>${esc(label)}</span>`;
 
   $("#session-state").innerHTML = `<span class="dot ${dot}"></span><span>${esc(label)}</span>`
     + (sess.message ? `<span class="err">${esc(sess.message)}</span>` : "");
@@ -282,18 +370,27 @@ async function refreshStatus() {
   if (!sess.can_open_browser) say($("#login-msg"), "No screen on this machine (server). Use option 2.");
   $("#cookie-clear").hidden = !sess.cookie_set;
 
-  $("#run-btn").disabled = job.running;
+  $$("[data-what]").forEach(b => b.disabled = job.running);
+  $("#topics-form button[type=submit]").disabled = job.running;
   $("#stop-btn").hidden = !(job.running && job.kind === "scrape");
   $("#progress").hidden = !job.total;
   $("#progress div").style.width = job.total ? `${100 * job.done / job.total}%` : "0";
-  if (job.running && job.kind === "scrape") $("#progress-text").textContent = `${job.done} of ${job.total} accounts done`;
+  let progressText = "";
+  if (job.running && job.kind === "scrape") progressText = `${job.done} of ${job.total} done`;
   else if (job.finished_at && job.kind === "scrape") {
     const sm = job.summary;
-    $("#progress-text").textContent = job.error ? `Stopped with an error: ${job.error}`
+    progressText = job.error ? `Stopped with an error: ${job.error}`
       : sm ? `Finished ${new Date(job.finished_at).toLocaleTimeString()}: ${sm.added} new posts, ${sm.updated} updated${sm.errors ? `, ${sm.errors} errors` : ""}${sm.stopped ? " (stopped early)" : ""}.` : "";
   }
+  $("#progress-text").textContent = progressText;
+  if (!$("#topics").hidden && job.kind === "scrape" && (job.running || wasRunning)) {
+    say($("#topics-msg"), job.running ? `Searching… ${progressText}. Follow along on the Run tab.` : progressText);
+  }
   if (job.running || wasRunning) refreshLog();
-  if (wasRunning && !job.running && !$("#posts").hidden) loadPosts();
+  if (wasRunning && !job.running) {
+    if (!$("#posts").hidden) loadPosts();
+    if (!$("#creators").hidden) loadCreators();
+  }
   wasRunning = job.running;
   if (!settingsLoaded) fillSettings(s.settings);
 }
@@ -307,37 +404,104 @@ async function refreshLog() {
 setInterval(refreshStatus, 2500);
 
 // ---- run
-$("#run-btn").onclick = async () => {
-  if (lastStatus && !lastStatus.session.cookie_set && !lastStatus.session.profile_saved) {
+async function startRun(what, msgEl) {
+  if (lastStatus && !lastStatus.session.cookie_set && !lastStatus.session.profile_saved
+      && lastStatus.session.status !== "ok") {
     if (!confirm("You haven't signed in to LinkedIn yet. Run anyway?")) return show("session");
   }
-  const r = await api("/api/run", {});
-  say($("#run-msg"), r.message, r.ok ? "muted" : "err");
+  const r = await api("/api/run", {what});
+  say(msgEl, r.message, r.ok ? "muted" : "err");
   refreshStatus();
-};
-$("#stop-btn").onclick = async () => { await api("/api/stop", {}); say($("#run-msg"), "Stopping after the current account…"); };
+  return r.ok;
+}
+$$("[data-what]").forEach(b => b.onclick = () => startRun(b.dataset.what, $("#run-msg")));
+$("#stop-btn").onclick = async () => { await api("/api/stop", {}); say($("#run-msg"), "Stopping after the current one…"); };
 
 let settingsLoaded = false;
 function fillSettings(s) {
-  const f = $("#settings-form");
-  for (const [k, v] of Object.entries(s)) {
-    const el = f.elements[k];
-    if (!el) continue;
-    if (el.type === "checkbox") el.checked = !!v; else el.value = v;
+  for (const f of [$("#settings-form"), $("#topics-form")]) {
+    for (const [k, v] of Object.entries(s)) {
+      const el = f.elements[k];
+      if (!el || !el.name) continue;
+      if (el.type === "checkbox") el.checked = !!v; else el.value = v ?? "";
+    }
   }
   settingsLoaded = true;
 }
+function formValues(f) {
+  const body = {};
+  for (const el of f.elements) if (el.name) body[el.name] = el.type === "checkbox" ? el.checked : el.value;
+  return body;
+}
 $("#settings-form").onsubmit = async e => {
   e.preventDefault();
-  const f = e.target, body = {};
-  for (const el of f.elements) if (el.name) body[el.name] = el.type === "checkbox" ? el.checked : el.value;
   try {
-    const r = await api("/api/settings", body);
+    const r = await api("/api/settings", formValues(e.target));
     fillSettings(r.settings);
     say($("#settings-msg"), "Saved.", "okmsg");
     refreshStatus();
   } catch (err) { say($("#settings-msg"), err.message, "err"); }
 };
+
+// ---- topics
+async function loadTopics() {
+  const r = await api("/api/topics");
+  if (document.activeElement !== $("#topics-text")) $("#topics-text").value = r.text;
+}
+async function saveTopics() {
+  const r = await api("/api/topics", {text: $("#topics-text").value});
+  fillSettings((await api("/api/settings", formValues($("#topics-form")))).settings);
+  refreshStatus();
+  return r.count;
+}
+$("#topics-save").onclick = async () => {
+  try { say($("#topics-msg"), `Saved ${await saveTopics()} topics.`, "okmsg"); }
+  catch (err) { say($("#topics-msg"), err.message, "err"); }
+};
+$("#topics-form").onsubmit = async e => {
+  e.preventDefault();
+  try {
+    if (!(await saveTopics())) return say($("#topics-msg"), "Add at least one topic.", "err");
+    await startRun("topics", $("#topics-msg"));
+  } catch (err) { say($("#topics-msg"), err.message, "err"); }
+};
+
+// ---- creators
+async function follow(btn) {
+  btn.disabled = true;
+  try {
+    await api("/api/follow", {account: btn.dataset.follow});
+    $$(`[data-follow="${CSS.escape(btn.dataset.follow)}"]`).forEach(b => { b.disabled = true; b.textContent = "✓ In accounts"; });
+    refreshStatus();
+  } catch (err) { btn.disabled = false; alert(err.message); }
+}
+document.addEventListener("click", e => { if (e.target.dataset.follow && !e.target.disabled) follow(e.target); });
+const followBtn = (account, followed) => followed
+  ? `<button class="follow" disabled>✓ In accounts</button>`
+  : `<button class="follow" data-follow="${esc(account)}" title="Add to your accounts so every run collects their newest posts">+ Add to accounts</button>`;
+
+async function loadCreators() {
+  const p = new URLSearchParams({topic: $("#c-topic").value, days: $("#c-days").value});
+  for (const [k, v] of [...p]) if (!v) p.delete(k);
+  const r = await api("/api/creators?" + p);
+  fillSelect($("#c-topic"), [["", "All topics"], ...r.topics.map(t => [t, t])]);
+  $("#c-count").textContent = r.rows.length ? `${r.rows.length} creators` : "";
+  $("#c-body").innerHTML = r.rows.length ? r.rows.map(c => `
+    <tr>
+      <td style="min-width:200px">
+        <a href="${esc(safeUrl(c.author_url))}" target="_blank" rel="noopener noreferrer"><strong>${esc(c.author)}</strong></a>
+        <div class="muted">${esc(c.headline)}</div>
+        <div class="row" style="gap:6px;margin-top:6px">${c.topics.map(t => `<span class="tag topic">${esc(t)}</span>`).join("")}</div>
+      </td>
+      <td><a class="snippet" href="${esc(safeUrl(c.best_url))}" target="_blank" rel="noopener noreferrer">${esc(c.best_text || "(no text)")}</a></td>
+      <td class="num">${fmt(c.best_score)} pts</td>
+      <td class="num">${fmt(c.avg_score)} pts</td>
+      <td class="num">${c.posts}</td>
+      <td>${followBtn(c.account, c.followed)}</td>
+    </tr>`).join("")
+    : `<tr><td colspan="6" class="muted" style="padding:32px;text-align:center">No creators yet. Add topics on the <a href="#" onclick="show('topics');return false">Topics</a> tab and search them.</td></tr>`;
+}
+$$("#creators select").forEach(el => el.onchange = loadCreators);
 
 // ---- accounts
 async function loadAccounts() {
@@ -375,39 +539,40 @@ $("#cookie-clear").onclick = async () => {
 };
 
 // ---- posts
+const FILTERS = {q: "#f-q", source: "#f-source", account: "#f-account", days: "#f-days", sort: "#f-sort",
+                 per_account: "#f-per", media: "#f-media", min_reactions: "#f-min"};
 function filterQuery() {
-  const p = new URLSearchParams({
-    q: $("#f-q").value, account: $("#f-account").value, days: $("#f-days").value,
-    sort: $("#f-sort").value, per_account: $("#f-per").value,
-    include_reposts: $("#f-reposts").checked ? "1" : "", limit: "100",
-  });
-  for (const [k, v] of [...p]) if (!v) p.delete(k);
+  const p = new URLSearchParams({limit: "100"});
+  for (const [k, sel] of Object.entries(FILTERS)) if ($(sel).value) p.set(k, $(sel).value);
+  if ($("#f-reposts").checked) p.set("include_reposts", "1");
   return p;
 }
 function saveFilters() {
   try { localStorage.setItem("ps-filters", JSON.stringify(Object.fromEntries(filterQuery()))); } catch {}
 }
-function restoreFilters() {
+let wanted = {};  // saved values for selects whose options arrive with the data
+(function restoreFilters() {
   let f = {};
   try { f = JSON.parse(localStorage.getItem("ps-filters") || "{}"); } catch {}
-  if (!f.sort) return null;  // nothing saved yet: keep the defaults
-  $("#f-q").value = f.q ?? "";
-  $("#f-days").value = f.days ?? "";
-  $("#f-sort").value = f.sort;
-  $("#f-per").value = f.per_account ?? "";
+  if (!f.sort) return;  // nothing saved yet: keep the defaults
+  for (const [k, sel] of Object.entries(FILTERS)) {
+    if (k === "source" || k === "account") wanted[k] = f[k] || "";
+    else $(sel).value = f[k] ?? "";
+  }
   $("#f-reposts").checked = f.include_reposts === "1";
-  return f.account;
-}
+})();
 
-let pendingAccount = restoreFilters();
+let followed = new Set();
 async function loadPosts() {
-  const q = filterQuery();
+  let q = filterQuery();
+  for (const k of ["source", "account"]) if (wanted[k]) q.set(k, wanted[k]);
   const r = await api("/api/posts?" + q);
-  const sel = $("#f-account"), current = pendingAccount ?? sel.value;
-  sel.innerHTML = `<option value="">All accounts</option>` + r.accounts.map(a => `<option>${esc(a)}</option>`).join("");
-  sel.value = r.accounts.includes(current) ? current : "";
-  if (pendingAccount && sel.value === pendingAccount) { pendingAccount = null; if (!q.get("account")) return loadPosts(); }
-  pendingAccount = null;
+  fillSelect($("#f-source"), [["", "Everything"], ["accounts", "Your accounts"], ["topics", "All topic searches"],
+    ...r.topics.map(t => ["search:" + t, "Topic: " + t])], wanted.source);
+  fillSelect($("#f-account"), [["", "All accounts"], ...r.accounts.map(a => [a, a])], wanted.account);
+  wanted = {};
+  followed = new Set(r.followed || []);
+  q = filterQuery();
   $$("[data-export]").forEach(a => a.href = `/api/export?format=${a.dataset.export}&` + q);
   $("#result-count").textContent = r.rows.length ? `${r.rows.length} posts` : "";
   renderPosts(r.rows);
@@ -417,8 +582,8 @@ function renderPosts(rows) {
   if (!rows.length) {
     const none = !lastStatus || !lastStatus.posts;
     list.innerHTML = `<div class="empty">${none
-      ? "No posts yet. Add accounts, sign in, then start a run.<br><button class='btn' onclick=\"show('run')\">Go to Run</button>"
-      : "No posts match these filters. Try a longer time range."}</div>`;
+      ? "No posts yet. Add some topics (or accounts), sign in to LinkedIn, then search.<br><button class='btn' onclick=\"show('topics')\">Add topics</button>"
+      : "No posts match these filters. Try a longer time range or fewer filters."}</div>`;
     return;
   }
   list.innerHTML = rows.map((r, i) => `
@@ -429,6 +594,9 @@ function renderPosts(rows) {
         <span class="muted">${esc(r.account)} · ${esc(ago(r.posted_at))}</span>
         ${r.media ? `<span class="tag">${esc(r.media)}</span>` : ""}
         ${r.is_repost ? `<span class="tag">repost</span>` : ""}
+        ${topicsOf(r).map(t => `<span class="tag topic">${esc(t)}</span>`).join("")}
+        ${topicsOf(r).length ? followBtn(r.account, followed.has(r.account)) : ""}
+        ${r.headline ? `<div class="headline">${esc(r.headline)}</div>` : ""}
       </div>
       <div class="text clamp" data-i="${i}">${esc(r.text || "(no text)")}</div>
       <div class="metrics">

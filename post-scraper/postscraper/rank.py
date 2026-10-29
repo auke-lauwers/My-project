@@ -68,3 +68,55 @@ def pick(rows, n=50, per_account=None) -> list:
         if len(picked) >= n:
             break
     return picked
+
+
+def sources_of(post: dict) -> list:
+    return post.get("sources") or ["account"]  # posts saved before topic search existed
+
+
+def has_source(post: dict, source: str) -> bool:
+    """source: 'accounts', 'topics', or one exact source like 'search:cold email'."""
+    sources = sources_of(post)
+    if source == "accounts":
+        return "account" in sources
+    if source == "topics":
+        return any(s.startswith("search:") for s in sources)
+    return source in sources
+
+
+def topics(posts) -> list:
+    return sorted({s[len("search:"):] for p in posts for s in sources_of(p) if s.startswith("search:")},
+                  key=str.lower)
+
+
+def creators(posts, days=None, topic=None, followed=()) -> list:
+    """Authors found through topic searches, best first.
+
+    Each creator's numbers cover all of their stored posts in the window;
+    'followed' marks the ones already in the account list.
+    """
+    rows = rank(posts, days=days)
+    found = {r["account"] for r in rows if has_source(r, f"search:{topic}" if topic else "topics")}
+    followed = set(followed)
+    out = {}
+    for r in rows:
+        if r["account"] not in found:
+            continue
+        c = out.setdefault(r["account"], {
+            "account": r["account"], "author": r.get("author") or r["account"],
+            "headline": r.get("headline", ""), "author_url": r.get("author_url", ""),
+            "posts": 0, "total_score": 0, "best_score": 0, "best_text": "", "best_url": "",
+            "topics": set(), "followed": r["account"] in followed,
+        })
+        c["posts"] += 1
+        c["total_score"] += r["score"]
+        c["headline"] = c["headline"] or r.get("headline", "")
+        c["topics"].update(s[len("search:"):] for s in sources_of(r) if s.startswith("search:"))
+        if r["score"] > c["best_score"]:
+            c["best_score"], c["best_text"], c["best_url"] = r["score"], r.get("text", ""), r["url"]
+    result = []
+    for c in out.values():
+        c["avg_score"] = round(c.pop("total_score") / c["posts"])
+        c["topics"] = sorted(c["topics"], key=str.lower)
+        result.append(c)
+    return sorted(result, key=lambda c: (c["best_score"], c["avg_score"]), reverse=True)

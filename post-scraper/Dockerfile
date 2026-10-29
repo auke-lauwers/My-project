@@ -12,7 +12,7 @@ WORKDIR /app
 COPY requirements.txt .
 RUN python3 -m pip install --no-cache-dir playwright==1.48.0 -r requirements.txt
 COPY postscraper ./postscraper
-COPY accounts.txt .
+COPY accounts.txt topics.txt ./
 
 # Everything the app writes (posts, settings, accounts, .env, browser profile) lives
 # in /data. Mount a volume there (Railway: add a volume with mount path /data) or
@@ -20,4 +20,4 @@ COPY accounts.txt .
 WORKDIR /data
 ENV PYTHONPATH=/app PYTHONUNBUFFERED=1 PORT=8080
 EXPOSE 8080
-CMD ["sh", "-c", "[ -f accounts.txt ] || cp /app/accounts.txt .; exec python3 -m postscraper serve --host 0.0.0.0"]
+CMD ["sh", "-c", "[ -f accounts.txt ] || cp /app/accounts.txt .; [ -f topics.txt ] || cp /app/topics.txt .; exec python3 -m postscraper serve --host 0.0.0.0"]
